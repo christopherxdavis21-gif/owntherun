@@ -77,9 +77,59 @@ function FeedPage() {
       );
       setProfiles(pmap);
 
+      // Trophy shelf
+      if (user) {
+        const [tRes, defsRes, cRes, pRes] = await Promise.all([
+          supabase
+            .from("user_achievements")
+            .select("achievement_code, earned_at")
+            .eq("user_id", user.id)
+            .order("earned_at", { ascending: false })
+            .limit(5),
+          supabase.from("achievement_definitions").select("code, title, tier, icon"),
+          supabase
+            .from("user_challenge_progress")
+            .select("challenge_id, progress_value, completed_at")
+            .eq("user_id", user.id)
+            .is("completed_at", null),
+          // active challenges only — fetched after we know the IDs
+          Promise.resolve(null),
+        ]);
+        const defs: Record<string, { title: string; tier: AchievementTier; icon: string }> = {};
+        ((defsRes.data as Array<{ code: string; title: string; tier: AchievementTier; icon: string }> | null) ?? []).forEach(
+          (d) => (defs[d.code] = d),
+        );
+        const trophies = ((tRes.data as Array<{ achievement_code: string }> | null) ?? [])
+          .map((r) => defs[r.achievement_code])
+          .filter((x): x is { title: string; tier: AchievementTier; icon: string } => !!x);
+        setShelfTrophies(trophies);
+
+        const progRows = (pRes.data as Array<{ challenge_id: string; progress_value: number }> | null) ?? [];
+        if (progRows.length) {
+          const cIds = progRows.map((r) => r.challenge_id);
+          const { data: chData } = await supabase
+            .from("challenges")
+            .select("id, title, target_value, ends_at")
+            .in("id", cIds)
+            .gt("ends_at", new Date().toISOString());
+          const chRows = (chData as Array<{ id: string; title: string; target_value: number; ends_at: string }> | null) ?? [];
+          const merged = chRows.map((c) => {
+            const p = progRows.find((x) => x.challenge_id === c.id);
+            return {
+              id: c.id,
+              title: c.title,
+              progress: Number(p?.progress_value ?? 0),
+              target: Number(c.target_value),
+              ends_at: c.ends_at,
+            };
+          });
+          setShelfChallenges(merged);
+        }
+      }
+
       setLoading(false);
     })();
-  }, []);
+  }, [user]);
 
   return (
     <AppShell>
