@@ -15,9 +15,22 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatClanTag } from "@/lib/format";
-import { ShieldCheck, ShieldAlert, Mail, Trophy, Flame, Activity, Route as RouteIcon } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Mail, Trophy, Flame, Activity, Route as RouteIcon, AlertTriangle } from "lucide-react";
 import { TrophyCard } from "@/components/trophies/TrophyCard";
 import type { AchievementTier } from "@/lib/trophy";
+import { useServerFn } from "@tanstack/react-start";
+import { deleteOwnAccount } from "@/lib/account.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — Catch Up" }] }),
