@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievement_definitions: {
+        Row: {
+          category: Database["public"]["Enums"]["achievement_category"]
+          code: string
+          created_at: string
+          criteria: Json
+          description: string
+          icon: string
+          sort_order: number
+          tier: Database["public"]["Enums"]["achievement_tier"]
+          title: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["achievement_category"]
+          code: string
+          created_at?: string
+          criteria: Json
+          description: string
+          icon?: string
+          sort_order?: number
+          tier?: Database["public"]["Enums"]["achievement_tier"]
+          title: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["achievement_category"]
+          code?: string
+          created_at?: string
+          criteria?: Json
+          description?: string
+          icon?: string
+          sort_order?: number
+          tier?: Database["public"]["Enums"]["achievement_tier"]
+          title?: string
+        }
+        Relationships: []
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string
+          id: string
+          is_system: boolean
+          metric: Database["public"]["Enums"]["challenge_metric"]
+          scope: Database["public"]["Enums"]["challenge_scope"]
+          scope_id: string | null
+          starts_at: string
+          target_value: number
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at: string
+          id?: string
+          is_system?: boolean
+          metric: Database["public"]["Enums"]["challenge_metric"]
+          scope: Database["public"]["Enums"]["challenge_scope"]
+          scope_id?: string | null
+          starts_at?: string
+          target_value: number
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string
+          id?: string
+          is_system?: boolean
+          metric?: Database["public"]["Enums"]["challenge_metric"]
+          scope?: Database["public"]["Enums"]["challenge_scope"]
+          scope_id?: string | null
+          starts_at?: string
+          target_value?: number
+          title?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
@@ -82,6 +163,42 @@ export type Database = {
           is_public?: boolean
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      medals: {
+        Row: {
+          awarded_at: string
+          category: string
+          id: string
+          period_start: string
+          period_type: string
+          rank: number
+          scope: string
+          scope_id: string | null
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          category: string
+          id?: string
+          period_start: string
+          period_type: string
+          rank: number
+          scope: string
+          scope_id?: string | null
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          category?: string
+          id?: string
+          period_start?: string
+          period_type?: string
+          rank?: number
+          scope?: string
+          scope_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -314,6 +431,115 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_code: string
+          earned_at: string
+          id: string
+          run_id: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_code: string
+          earned_at?: string
+          id?: string
+          run_id?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_code?: string
+          earned_at?: string
+          id?: string
+          run_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_code_fkey"
+            columns: ["achievement_code"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      user_challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          id: string
+          joined_at: string
+          progress_value: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          id?: string
+          joined_at?: string
+          progress_value?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          id?: string
+          joined_at?: string
+          progress_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_stats: {
+        Row: {
+          current_streak_days: number
+          fastest_mile_seconds: number | null
+          last_run_at: string | null
+          lifetime_elevation: number
+          lifetime_meters: number
+          lifetime_runs: number
+          lifetime_seconds: number
+          longest_run_meters: number
+          longest_streak_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak_days?: number
+          fastest_mile_seconds?: number | null
+          last_run_at?: string | null
+          lifetime_elevation?: number
+          lifetime_meters?: number
+          lifetime_runs?: number
+          lifetime_seconds?: number
+          longest_run_meters?: number
+          longest_streak_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak_days?: number
+          fastest_mile_seconds?: number | null
+          last_run_at?: string | null
+          lifetime_elevation?: number
+          lifetime_meters?: number
+          lifetime_runs?: number
+          lifetime_seconds?: number
+          longest_run_meters?: number
+          longest_streak_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -325,6 +551,21 @@ export type Database = {
       }
     }
     Enums: {
+      achievement_category:
+        | "distance"
+        | "streak"
+        | "elevation"
+        | "speed"
+        | "social"
+        | "milestone"
+      achievement_tier: "bronze" | "silver" | "gold" | "platinum"
+      challenge_metric:
+        | "distance_meters"
+        | "elevation_meters"
+        | "runs_count"
+        | "streak_days"
+        | "duration_seconds"
+      challenge_scope: "system" | "group" | "personal"
       run_visibility: "private" | "public" | "leaderboard"
     }
     CompositeTypes: {
@@ -453,6 +694,23 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      achievement_category: [
+        "distance",
+        "streak",
+        "elevation",
+        "speed",
+        "social",
+        "milestone",
+      ],
+      achievement_tier: ["bronze", "silver", "gold", "platinum"],
+      challenge_metric: [
+        "distance_meters",
+        "elevation_meters",
+        "runs_count",
+        "streak_days",
+        "duration_seconds",
+      ],
+      challenge_scope: ["system", "group", "personal"],
       run_visibility: ["private", "public", "leaderboard"],
     },
   },
