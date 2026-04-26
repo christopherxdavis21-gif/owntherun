@@ -31,8 +31,6 @@ type ProfileRow = {
   clan_group_id: string | null;
   gender: string | null;
   birthdate: string | null;
-  phone_number: string | null;
-  phone_verified: boolean;
   email_verified: boolean;
   is_verified: boolean;
 };
