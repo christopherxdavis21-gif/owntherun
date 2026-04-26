@@ -48,30 +48,36 @@ export type Database = {
       }
       groups: {
         Row: {
+          clan_tag: string | null
           created_at: string
           created_by: string
           description: string | null
           id: string
+          image_url: string | null
           invite_code: string
           is_public: boolean
           name: string
           updated_at: string
         }
         Insert: {
+          clan_tag?: string | null
           created_at?: string
           created_by: string
           description?: string | null
           id?: string
+          image_url?: string | null
           invite_code?: string
           is_public?: boolean
           name: string
           updated_at?: string
         }
         Update: {
+          clan_tag?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           invite_code?: string
           is_public?: boolean
           name?: string
@@ -82,6 +88,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          clan_group_id: string | null
+          clan_tag: string | null
           created_at: string
           display_name: string
           id: string
@@ -90,6 +98,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          clan_group_id?: string | null
+          clan_tag?: string | null
           created_at?: string
           display_name: string
           id?: string
@@ -98,6 +108,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          clan_group_id?: string | null
+          clan_tag?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -182,6 +194,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_routes: {
+        Row: {
+          id: string
+          route_id: string
+          saved_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          route_id: string
+          saved_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          route_id?: string
+          saved_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
