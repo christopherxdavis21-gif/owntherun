@@ -57,17 +57,17 @@ function LeaderboardsPage() {
 
       const userIds = Array.from(new Set(runs.map((r) => r.user_id)));
       const { data: profs } = userIds.length
-        ? await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+        ? await supabase.from("profiles").select("user_id, display_name, clan_tag").in("user_id", userIds)
         : { data: [] };
-      const profMap: Record<string, string> = {};
-      ((profs as Array<{ user_id: string; display_name: string }> | null) ?? []).forEach(
-        (p) => (profMap[p.user_id] = p.display_name),
+      const profMap: Record<string, { name: string; tag: string | null }> = {};
+      ((profs as Array<{ user_id: string; display_name: string; clan_tag: string | null }> | null) ?? []).forEach(
+        (p) => (profMap[p.user_id] = { name: p.display_name, tag: p.clan_tag }),
       );
 
       const grouped = routesList.map((r): RouteWithBest => {
         const myRuns = runs.filter((x) => x.route_id === r.id);
         if (myRuns.length === 0) {
-          return { ...r, best_time: null, best_user: null, run_count: 0 };
+          return { ...r, best_time: null, best_user: null, best_user_tag: null, run_count: 0 };
         }
         const best = myRuns.reduce((a, b) =>
           a.duration_seconds < b.duration_seconds ? a : b,
@@ -75,7 +75,8 @@ function LeaderboardsPage() {
         return {
           ...r,
           best_time: best.duration_seconds,
-          best_user: profMap[best.user_id] ?? "Runner",
+          best_user: profMap[best.user_id]?.name ?? "Runner",
+          best_user_tag: profMap[best.user_id]?.tag ?? null,
           run_count: myRuns.length,
         };
       });
