@@ -1,3 +1,5 @@
+const METERS_PER_MILE = 1609.344;
+
 export function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -16,17 +18,23 @@ export function parseDuration(input: string): number {
 }
 
 export function formatDistance(meters: number): string {
-  const km = meters / 1000;
-  return `${km.toFixed(2)} km`;
+  const miles = meters / METERS_PER_MILE;
+  return `${miles.toFixed(2)} mi`;
 }
 
 export function formatPace(meters: number, seconds: number): string {
   if (meters <= 0 || seconds <= 0) return "—";
-  const km = meters / 1000;
-  const paceSecPerKm = seconds / km;
-  const m = Math.floor(paceSecPerKm / 60);
-  const s = Math.round(paceSecPerKm % 60);
-  return `${m}:${s.toString().padStart(2, "0")} /km`;
+  const miles = meters / METERS_PER_MILE;
+  const paceSecPerMile = seconds / miles;
+  const m = Math.floor(paceSecPerMile / 60);
+  const s = Math.round(paceSecPerMile % 60);
+  return `${m}:${s.toString().padStart(2, "0")} /mi`;
+}
+
+// Format a clan tag prefix like "[NYC] " or "" if none
+export function formatClanTag(tag?: string | null): string {
+  if (!tag) return "";
+  return `[${tag.toUpperCase()}] `;
 }
 
 // Haversine distance between two [lng, lat] points in meters
