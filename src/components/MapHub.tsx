@@ -199,31 +199,69 @@ export function MapHub({ userLocation, nearbyRoutes, onStartFreeRun }: MapHubPro
             )}
           </div>
           {results.length > 0 && (
-            <ul className="max-h-64 divide-y divide-border overflow-y-auto border-t border-border">
-              {results.map((r) => (
-                <li key={r.id}>
-                  <button
-                    onClick={() => choose(r)}
-                    className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-surface"
-                  >
-                    <MapPinIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${r.is_poi ? "text-primary" : "text-muted-foreground"}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate font-medium">{r.name}</span>
-                        {r.distance_meters != null && (
-                          <span className="font-mono-num shrink-0 text-xs text-muted-foreground">
-                            {formatDistance(r.distance_meters)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {r.category ? `${r.category.split(",")[0]} · ` : ""}{r.place}
-                      </div>
+            <>
+              {(() => {
+                const poiCount = results.filter((r) => r.is_poi).length;
+                if (poiCount >= 2) {
+                  return (
+                    <div className="border-t border-border px-3 py-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                      {poiCount} matches for "{query.trim()}"
                     </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  );
+                }
+                return null;
+              })()}
+              <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto border-t border-border">
+                {results.map((r) => {
+                  const Icon = r.is_poi
+                    ? Building2
+                    : (r.category ?? "").includes("landmark")
+                      ? Landmark
+                      : MapPinIcon;
+                  // Strip the leading name from place_name to avoid duplicating it
+                  const addressLine = r.place.startsWith(r.name + ", ")
+                    ? r.place.slice(r.name.length + 2)
+                    : r.place;
+                  const categoryLabel = r.category
+                    ? r.category.split(",")[0].replace(/_/g, " ")
+                    : null;
+                  return (
+                    <li key={r.id}>
+                      <button
+                        onClick={() => choose(r)}
+                        className="flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface"
+                      >
+                        <Icon
+                          className={`mt-0.5 h-4 w-4 shrink-0 ${r.is_poi ? "text-primary" : "text-muted-foreground"}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-sm font-semibold">{r.name}</span>
+                            {r.distance_meters != null && (
+                              <span className="font-mono-num shrink-0 rounded-full bg-surface px-2 py-0.5 text-[11px] text-muted-foreground">
+                                {formatDistance(r.distance_meters)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {categoryLabel && (
+                              <span className="capitalize">{categoryLabel}</span>
+                            )}
+                            {categoryLabel && addressLine ? " · " : ""}
+                            {addressLine}
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+          {!searching && results.length === 0 && query.trim().length >= 2 && !selected && (
+            <div className="border-t border-border px-3 py-3 text-xs text-muted-foreground">
+              No matches found. Try a broader term like "coffee" or "park".
+            </div>
           )}
         </div>
 
