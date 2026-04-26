@@ -69,7 +69,7 @@ function ProfilePage() {
       const [{ data: profile }, { data: members }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("display_name, clan_tag, clan_group_id, gender, birthdate, phone_number, phone_verified, email_verified, is_verified")
+          .select("display_name, clan_tag, clan_group_id, gender, birthdate, email_verified, is_verified")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("group_members").select("group_id").eq("user_id", user.id),
