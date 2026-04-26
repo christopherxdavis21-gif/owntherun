@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users } from "lucide-react";
+import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2 } from "lucide-react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -67,6 +67,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Button size="sm" variant="default" className="gap-1">
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">New Route</span>
+              </Button>
+            </Link>
+            <Link to="/profile">
+              <Button size="icon" variant="ghost" aria-label="Profile">
+                <UserCircle2 className="h-4 w-4" />
               </Button>
             </Link>
             <Button
