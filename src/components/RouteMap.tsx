@@ -153,19 +153,20 @@ export function RouteMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // When coordinates prop changes externally (e.g. clear/undo), sync
+  // When coordinates or snapped path change externally, sync the map
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
     const src = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
+    const lineCoords = pathCoordinates ?? coordinates;
     if (src) {
       src.setData({
         type: "Feature",
         properties: {},
-        geometry: { type: "LineString", coordinates },
+        geometry: { type: "LineString", coordinates: lineCoords },
       });
     }
-    // re-render markers
+    // re-render markers at user waypoints
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
     coordinates.forEach((c, i) => {
@@ -181,7 +182,7 @@ export function RouteMap({
       const marker = new mapboxgl.Marker({ element: el }).setLngLat(c).addTo(map);
       markersRef.current.push(marker);
     });
-  }, [coordinates]);
+  }, [coordinates, pathCoordinates]);
 
   if (error) {
     return (
