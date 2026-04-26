@@ -31,10 +31,17 @@ export const Route = createFileRoute("/feed")({
 });
 
 function FeedPage() {
+  const { user } = useAuth();
   const [runs, setRuns] = useState<Run[]>([]);
   const [routes, setRoutes] = useState<Record<string, string>>({});
   const [profiles, setProfiles] = useState<Record<string, { name: string; tag: string | null }>>({});
   const [loading, setLoading] = useState(true);
+  const [shelfTrophies, setShelfTrophies] = useState<
+    Array<{ title: string; tier: AchievementTier; icon: string }>
+  >([]);
+  const [shelfChallenges, setShelfChallenges] = useState<
+    Array<{ id: string; title: string; progress: number; target: number; ends_at: string }>
+  >([]);
 
   useEffect(() => {
     (async () => {
