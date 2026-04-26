@@ -45,8 +45,6 @@ function ProfilePage() {
   const [clanGroupId, setClanGroupId] = useState<string>("");
   const [gender, setGender] = useState<string>("undisclosed");
   const [birthdate, setBirthdate] = useState<string>("");
-  const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [phoneVerified, setPhoneVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [groups, setGroups] = useState<GroupOption[]>([]);
