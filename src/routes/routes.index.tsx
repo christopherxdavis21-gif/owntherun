@@ -121,9 +121,9 @@ function RunHubPage() {
 
       {/* Location status banner */}
       {locationStatus !== "granted" && (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 p-3 text-xs">
           <div>
-            <span className="font-semibold text-amber-200">Location off.</span>{" "}
+            <span className="font-semibold text-primary">Location off.</span>{" "}
             <span className="text-muted-foreground">
               {locationStatus === "denied"
                 ? "We can't show or search places near you. Allow location access in your browser, then retry."
