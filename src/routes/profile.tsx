@@ -53,6 +53,17 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Engagement summary
+  const [summary, setSummary] = useState<{
+    miles: number;
+    runs: number;
+    streak: number;
+    medals: number;
+  }>({ miles: 0, runs: 0, streak: 0, medals: 0 });
+  const [recentTrophies, setRecentTrophies] = useState<
+    Array<{ code: string; title: string; description: string; tier: AchievementTier; icon: string; earned_at: string }>
+  >([]);
+
   // Phone OTP state
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
