@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrophiesRouteImport } from './routes/trophies'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ChallengesRouteImport } from './routes/challenges'
@@ -28,6 +30,11 @@ const TrophiesRoute = TrophiesRouteImport.update({
   path: '/trophies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
@@ -36,6 +43,11 @@ const StatsRoute = StatsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
@@ -95,8 +107,10 @@ export interface FileRoutesByFullPath {
   '/challenges': typeof ChallengesRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/stats': typeof StatsRoute
+  '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
@@ -110,8 +124,10 @@ export interface FileRoutesByTo {
   '/challenges': typeof ChallengesRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/stats': typeof StatsRoute
+  '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
@@ -126,8 +142,10 @@ export interface FileRoutesById {
   '/challenges': typeof ChallengesRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/stats': typeof StatsRoute
+  '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
@@ -143,8 +161,10 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/feed'
     | '/leaderboards'
+    | '/privacy'
     | '/profile'
     | '/stats'
+    | '/terms'
     | '/trophies'
     | '/groups/$groupId'
     | '/routes/$routeId'
@@ -158,8 +178,10 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/feed'
     | '/leaderboards'
+    | '/privacy'
     | '/profile'
     | '/stats'
+    | '/terms'
     | '/trophies'
     | '/groups/$groupId'
     | '/routes/$routeId'
@@ -173,8 +195,10 @@ export interface FileRouteTypes {
     | '/challenges'
     | '/feed'
     | '/leaderboards'
+    | '/privacy'
     | '/profile'
     | '/stats'
+    | '/terms'
     | '/trophies'
     | '/groups/$groupId'
     | '/routes/$routeId'
@@ -189,8 +213,10 @@ export interface RootRouteChildren {
   ChallengesRoute: typeof ChallengesRoute
   FeedRoute: typeof FeedRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   StatsRoute: typeof StatsRoute
+  TermsRoute: typeof TermsRoute
   TrophiesRoute: typeof TrophiesRoute
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   RoutesRouteIdRoute: typeof RoutesRouteIdRoute
@@ -208,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrophiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stats': {
       id: '/stats'
       path: '/stats'
@@ -220,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboards': {
@@ -301,8 +341,10 @@ const rootRouteChildren: RootRouteChildren = {
   ChallengesRoute: ChallengesRoute,
   FeedRoute: FeedRoute,
   LeaderboardsRoute: LeaderboardsRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   StatsRoute: StatsRoute,
+  TermsRoute: TermsRoute,
   TrophiesRoute: TrophiesRoute,
   GroupsGroupIdRoute: GroupsGroupIdRoute,
   RoutesRouteIdRoute: RoutesRouteIdRoute,

@@ -15,9 +15,22 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatClanTag } from "@/lib/format";
-import { ShieldCheck, ShieldAlert, Mail, Trophy, Flame, Activity, Route as RouteIcon } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Mail, Trophy, Flame, Activity, Route as RouteIcon, AlertTriangle } from "lucide-react";
 import { TrophyCard } from "@/components/trophies/TrophyCard";
 import type { AchievementTier } from "@/lib/trophy";
+import { useServerFn } from "@tanstack/react-start";
+import { deleteOwnAccount } from "@/lib/account.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — Catch Up" }] }),
@@ -59,6 +72,29 @@ function ProfilePage() {
   const [recentTrophies, setRecentTrophies] = useState<
     Array<{ code: string; title: string; description: string; tier: AchievementTier; icon: string; earned_at: string }>
   >([]);
+
+  // Account deletion
+  const deleteAccountFn = useServerFn(deleteOwnAccount);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "DELETE") {
+      toast.error('Type DELETE to confirm');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deleteAccountFn();
+      await supabase.auth.signOut();
+      toast.success("Your account has been deleted.");
+      navigate({ to: "/auth" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete account";
+      toast.error(message);
+      setDeleting(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -356,6 +392,58 @@ function ProfilePage() {
             <Button variant="outline" onClick={() => navigate({ to: "/feed" })}>
               Done
             </Button>
+          </div>
+
+          {/* Danger zone — required for App Store compliance */}
+          <div className="mt-8 rounded-xl border border-destructive/40 bg-destructive/5 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              <div className="flex-1">
+                <h3 className="font-display text-sm font-bold text-destructive">Danger zone</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Permanently delete your account and all associated data: runs, routes, achievements,
+                  challenge progress, group memberships, and profile. This cannot be undone.
+                </p>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="mt-3">
+                      Delete my account
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete your Catch Up account?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently remove your profile, runs, routes, trophies, and group
+                        memberships. There is no recovery. Type <span className="font-bold text-foreground">DELETE</span> below to confirm.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Input
+                      value={deleteConfirm}
+                      onChange={(e) => setDeleteConfirm(e.target.value)}
+                      placeholder="Type DELETE to confirm"
+                      autoComplete="off"
+                    />
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setDeleteConfirm("")}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirm !== "DELETE" || deleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleting ? "Deleting…" : "Delete forever"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
+            <Link to="/privacy" className="hover:text-primary">Privacy</Link>
+            <span>·</span>
+            <Link to="/terms" className="hover:text-primary">Terms</Link>
           </div>
         </div>
       </div>
