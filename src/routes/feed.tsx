@@ -79,7 +79,7 @@ function FeedPage() {
 
       // Trophy shelf
       if (user) {
-        const [tRes, defsRes, cRes, pRes] = await Promise.all([
+        const [tRes, defsRes, progRes] = await Promise.all([
           supabase
             .from("user_achievements")
             .select("achievement_code, earned_at")
@@ -92,8 +92,6 @@ function FeedPage() {
             .select("challenge_id, progress_value, completed_at")
             .eq("user_id", user.id)
             .is("completed_at", null),
-          // active challenges only — fetched after we know the IDs
-          Promise.resolve(null),
         ]);
         const defs: Record<string, { title: string; tier: AchievementTier; icon: string }> = {};
         ((defsRes.data as Array<{ code: string; title: string; tier: AchievementTier; icon: string }> | null) ?? []).forEach(
@@ -104,7 +102,7 @@ function FeedPage() {
           .filter((x): x is { title: string; tier: AchievementTier; icon: string } => !!x);
         setShelfTrophies(trophies);
 
-        const progRows = (pRes.data as Array<{ challenge_id: string; progress_value: number }> | null) ?? [];
+        const progRows = (progRes.data as Array<{ challenge_id: string; progress_value: number }> | null) ?? [];
         if (progRows.length) {
           const cIds = progRows.map((r) => r.challenge_id);
           const { data: chData } = await supabase
