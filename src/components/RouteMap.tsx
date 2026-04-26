@@ -7,6 +7,8 @@ type Coord = [number, number];
 
 interface RouteMapProps {
   coordinates: Coord[];
+  /** Optional snapped polyline to render along roads instead of straight lines between waypoints. */
+  pathCoordinates?: Coord[];
   onChange?: (coords: Coord[]) => void;
   editable?: boolean;
   className?: string;
@@ -15,6 +17,7 @@ interface RouteMapProps {
 
 export function RouteMap({
   coordinates,
+  pathCoordinates,
   onChange,
   editable = false,
   className = "",
@@ -24,6 +27,7 @@ export function RouteMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const coordsRef = useRef<Coord[]>(coordinates);
+  const pathRef = useRef<Coord[] | undefined>(pathCoordinates);
   const onChangeRef = useRef(onChange);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +35,7 @@ export function RouteMap({
   // keep refs current
   useEffect(() => {
     coordsRef.current = coordinates;
+    pathRef.current = pathCoordinates;
     onChangeRef.current = onChange;
   });
 
@@ -64,7 +69,10 @@ export function RouteMap({
         data: {
           type: "Feature",
           properties: {},
-          geometry: { type: "LineString", coordinates: coordsRef.current },
+          geometry: {
+            type: "LineString",
+            coordinates: pathRef.current ?? coordsRef.current,
+          },
         },
       });
       map.addLayer({
@@ -89,24 +97,21 @@ export function RouteMap({
         const next: Coord[] = [...coordsRef.current, [e.lngLat.lng, e.lngLat.lat]];
         coordsRef.current = next;
         onChangeRef.current?.(next);
-        updateRouteSource(next);
+        // Optimistically draw straight line to the new point until snapped path arrives
+        const src = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
+        if (src) {
+          src.setData({
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates: next },
+          });
+        }
         renderMarkers();
       });
       map.getCanvas().style.cursor = "crosshair";
     }
 
     mapRef.current = map;
-
-    function updateRouteSource(coords: Coord[]) {
-      const src = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
-      if (src) {
-        src.setData({
-          type: "Feature",
-          properties: {},
-          geometry: { type: "LineString", coordinates: coords },
-        });
-      }
-    }
 
     function renderMarkers() {
       markersRef.current.forEach((m) => m.remove());
@@ -148,19 +153,20 @@ export function RouteMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // When coordinates prop changes externally (e.g. clear/undo), sync
+  // When coordinates or snapped path change externally, sync the map
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
     const src = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
+    const lineCoords = pathCoordinates ?? coordinates;
     if (src) {
       src.setData({
         type: "Feature",
         properties: {},
-        geometry: { type: "LineString", coordinates },
+        geometry: { type: "LineString", coordinates: lineCoords },
       });
     }
-    // re-render markers
+    // re-render markers at user waypoints
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
     coordinates.forEach((c, i) => {
@@ -176,7 +182,7 @@ export function RouteMap({
       const marker = new mapboxgl.Marker({ element: el }).setLngLat(c).addTo(map);
       markersRef.current.push(marker);
     });
-  }, [coordinates]);
+  }, [coordinates, pathCoordinates]);
 
   if (error) {
     return (
