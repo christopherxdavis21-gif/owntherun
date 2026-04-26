@@ -97,24 +97,21 @@ export function RouteMap({
         const next: Coord[] = [...coordsRef.current, [e.lngLat.lng, e.lngLat.lat]];
         coordsRef.current = next;
         onChangeRef.current?.(next);
-        updateRouteSource(next);
+        // Optimistically draw straight line to the new point until snapped path arrives
+        const src = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
+        if (src) {
+          src.setData({
+            type: "Feature",
+            properties: {},
+            geometry: { type: "LineString", coordinates: next },
+          });
+        }
         renderMarkers();
       });
       map.getCanvas().style.cursor = "crosshair";
     }
 
     mapRef.current = map;
-
-    function updateRouteSource(coords: Coord[]) {
-      const src = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
-      if (src) {
-        src.setData({
-          type: "Feature",
-          properties: {},
-          geometry: { type: "LineString", coordinates: coords },
-        });
-      }
-    }
 
     function renderMarkers() {
       markersRef.current.forEach((m) => m.remove());
