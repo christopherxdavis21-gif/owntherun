@@ -136,6 +136,56 @@ function FeedPage() {
         <h1 className="font-display text-4xl font-black tracking-tight">Latest runs</h1>
       </div>
 
+      {/* Trophy + challenge shelf */}
+      {!loading && (shelfTrophies.length > 0 || shelfChallenges.length > 0) && (
+        <div className="mb-6 -mx-4 overflow-x-auto px-4">
+          <div className="flex gap-2">
+            {shelfChallenges.map((c) => {
+              const pct = Math.min(100, Math.round((c.progress / c.target) * 100));
+              return (
+                <Link
+                  key={c.id}
+                  to="/challenges"
+                  className="flex w-44 shrink-0 flex-col gap-1.5 rounded-xl border border-primary/30 bg-primary/5 p-3 hover:border-primary/60"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Target className="h-3.5 w-3.5 text-primary" />
+                    <p className="font-mono-num text-[10px] uppercase tracking-wider text-primary">CHALLENGE</p>
+                  </div>
+                  <p className="truncate text-sm font-bold">{c.title}</p>
+                  <div className="h-1.5 overflow-hidden rounded bg-surface">
+                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="font-mono-num text-[10px] text-muted-foreground">{pct}% COMPLETE</p>
+                </Link>
+              );
+            })}
+            {shelfTrophies.map((t, i) => {
+              const Icon = iconFor(t.icon);
+              return (
+                <Link
+                  key={i}
+                  to="/trophies"
+                  className="flex w-32 shrink-0 flex-col items-center gap-1.5 rounded-xl border border-border bg-card p-3 text-center hover:border-primary/40"
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ring-2 ${TIER_RING[t.tier]}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="line-clamp-2 text-[11px] font-medium leading-tight">{t.title}</p>
+                </Link>
+              );
+            })}
+            <Link
+              to="/trophies"
+              className="flex w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-surface/30 p-3 text-center hover:border-primary/40"
+            >
+              <Trophy className="h-5 w-5 text-muted-foreground" />
+              <p className="text-[11px] text-muted-foreground">View all</p>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="font-mono-num text-sm text-muted-foreground">LOADING…</div>
       ) : runs.length === 0 ? (
