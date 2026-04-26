@@ -203,14 +203,29 @@ export const geocodePlace = createServerFn({ method: "POST" })
           text: string;
           place_name: string;
           center: Coord;
+          place_type?: string[];
+          properties?: { category?: string };
         }>;
       };
-      const results: GeocodeResult[] = (json.features ?? []).map((f) => ({
-        id: f.id,
-        name: f.text,
-        place: f.place_name,
-        center: f.center,
-      }));
+      const results: GeocodeResult[] = (json.features ?? []).map((f) => {
+        const isPoi = (f.place_type ?? []).includes("poi");
+        return {
+          id: f.id,
+          name: f.text,
+          place: f.place_name,
+          center: f.center,
+          category: f.properties?.category ?? null,
+          is_poi: isPoi,
+          distance_meters: data.proximity ? Math.round(haversineMeters(data.proximity, f.center)) : null,
+        };
+      });
+      // Sort: POIs first, then by distance from user (if available)
+      results.sort((a, b) => {
+        if (a.is_poi !== b.is_poi) return a.is_poi ? -1 : 1;
+        const da = a.distance_meters ?? Number.POSITIVE_INFINITY;
+        const db = b.distance_meters ?? Number.POSITIVE_INFINITY;
+        return da - db;
+      });
       return { results, error: null as string | null };
     } catch (err) {
       console.error("Mapbox geocoding request failed:", err);
