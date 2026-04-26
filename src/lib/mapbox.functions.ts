@@ -169,6 +169,33 @@ type MapboxFeature = {
   properties?: { category?: string };
 };
 
+type SearchboxSuggestion = {
+  name: string;
+  mapbox_id: string;
+  feature_type: string;
+  full_address?: string;
+  place_formatted?: string;
+  poi_category?: string[];
+  distance?: number;
+};
+
+type SearchboxRetrieveFeature = {
+  geometry?: { coordinates?: Coord };
+  properties?: {
+    name?: string;
+    mapbox_id?: string;
+    feature_type?: string;
+    full_address?: string;
+    place_formatted?: string;
+    poi_category?: string[];
+    coordinates?: {
+      latitude?: number;
+      longitude?: number;
+      routable_points?: Array<{ latitude?: number; longitude?: number }>;
+    };
+  };
+};
+
 async function fetchMapboxFeatures(
   query: string,
   token: string,
@@ -199,6 +226,81 @@ async function fetchMapboxFeatures(
   return json.features ?? [];
 }
 
+async function fetchSearchboxBusinessResults(
+  query: string,
+  token: string,
+  proximity: Coord | undefined,
+  limit: number,
+): Promise<GeocodeResult[]> {
+  if (!proximity) return [];
+
+  const sessionToken = crypto.randomUUID();
+  const params = new URLSearchParams({
+    access_token: token,
+    limit: String(limit),
+    language: "en",
+    types: "poi",
+    q: query,
+    proximity: `${proximity[0]},${proximity[1]}`,
+    session_token: sessionToken,
+  });
+
+  const suggestUrl = `https://api.mapbox.com/search/searchbox/v1/suggest?${params}`;
+  const suggestRes = await fetch(suggestUrl);
+  if (!suggestRes.ok) {
+    console.error(`Mapbox Searchbox suggest error: ${suggestRes.status} ${suggestRes.statusText}`);
+    return [];
+  }
+
+  const suggestJson = (await suggestRes.json()) as { suggestions?: SearchboxSuggestion[] };
+  const suggestions = (suggestJson.suggestions ?? [])
+    .filter((s) => s.feature_type === "poi" && s.mapbox_id)
+    .slice(0, limit);
+
+  const details = await Promise.all(
+    suggestions.map(async (suggestion) => {
+      const retrieveParams = new URLSearchParams({
+        access_token: token,
+        session_token: sessionToken,
+      });
+      const retrieveUrl = `https://api.mapbox.com/search/searchbox/v1/retrieve/${encodeURIComponent(
+        suggestion.mapbox_id,
+      )}?${retrieveParams}`;
+
+      try {
+        const retrieveRes = await fetch(retrieveUrl);
+        if (!retrieveRes.ok) return null;
+        const retrieveJson = (await retrieveRes.json()) as { features?: SearchboxRetrieveFeature[] };
+        const feature = retrieveJson.features?.[0];
+        const props = feature?.properties;
+        const routable = props?.coordinates?.routable_points?.[0];
+        const center: Coord | undefined =
+          routable?.longitude != null && routable.latitude != null
+            ? [routable.longitude, routable.latitude]
+            : props?.coordinates?.longitude != null && props.coordinates.latitude != null
+              ? [props.coordinates.longitude, props.coordinates.latitude]
+              : feature?.geometry?.coordinates;
+
+        if (!center) return null;
+
+        return {
+          id: props?.mapbox_id ?? suggestion.mapbox_id,
+          name: props?.name ?? suggestion.name,
+          place: props?.full_address ?? props?.place_formatted ?? suggestion.full_address ?? suggestion.place_formatted ?? suggestion.name,
+          center,
+          category: (props?.poi_category ?? suggestion.poi_category ?? []).join(", ") || null,
+          is_poi: true,
+          distance_meters: Math.round(suggestion.distance ?? haversineMeters(proximity, center)),
+        } satisfies GeocodeResult;
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  return details.filter((result): result is GeocodeResult => result != null);
+}
+
 export const geocodePlace = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const data = input as { query?: string; proximity?: Coord };
@@ -217,48 +319,25 @@ export const geocodePlace = createServerFn({ method: "POST" })
     if (!token) throw new Error("Mapbox token not configured");
 
     const q = data.query.trim();
-    // Heuristic: queries that start with a digit are likely street addresses,
-    // not business names. Otherwise treat as a possible business search and
-    // run a dedicated POI pass so we get many branches (e.g. all Starbucks).
+    // Queries that start with a digit are likely street addresses. Business
+    // names go through Searchbox first because it returns real nearby POIs
+    // like multiple Starbucks locations, not global street-name matches.
     const looksLikeAddress = /^\s*\d/.test(q);
 
     try {
-      const passes: Promise<MapboxFeature[]>[] = [];
+      const searchboxResults = looksLikeAddress
+        ? []
+        : await fetchSearchboxBusinessResults(q, token, data.proximity, 10);
 
-      if (looksLikeAddress) {
-        passes.push(fetchMapboxFeatures(q, token, "address,place,locality,neighborhood,poi", data.proximity, 10));
-      } else {
-        // Pass A: businesses/POIs only — gives us multiple chain locations.
-        passes.push(fetchMapboxFeatures(q, token, "poi", data.proximity, 10));
-        // Pass B: addresses + places, for street/landmark fallbacks.
-        passes.push(fetchMapboxFeatures(q, token, "address,place,locality,neighborhood", data.proximity, 5));
-      }
+      const fallbackFeatures = await fetchMapboxFeatures(
+        q,
+        token,
+        looksLikeAddress ? "address,place,locality,neighborhood,poi" : "address,place,locality,neighborhood",
+        data.proximity,
+        looksLikeAddress ? 10 : 5,
+      );
 
-      const settled = await Promise.all(passes);
-      let features = settled.flat();
-
-      // If proximity-biased POI search returned very few nearby hits, widen
-      // the search to surface farther matches the user can still pick from.
-      if (!looksLikeAddress && data.proximity) {
-        const closeHits = features.filter((f) => {
-          const d = haversineMeters(data.proximity!, f.center);
-          return d <= 25_000 && (f.place_type ?? []).includes("poi");
-        });
-        if (closeHits.length < 3) {
-          const wider = await fetchMapboxFeatures(q, token, "poi", undefined, 10);
-          features = features.concat(wider);
-        }
-      }
-
-      // Dedupe by feature id.
-      const seen = new Set<string>();
-      const unique = features.filter((f) => {
-        if (seen.has(f.id)) return false;
-        seen.add(f.id);
-        return true;
-      });
-
-      const results: GeocodeResult[] = unique.map((f) => {
+      const fallbackResults: GeocodeResult[] = fallbackFeatures.map((f) => {
         const isPoi = (f.place_type ?? []).includes("poi");
         return {
           id: f.id,
@@ -271,7 +350,14 @@ export const geocodePlace = createServerFn({ method: "POST" })
         };
       });
 
-      // Sort: POIs first (when not address-like), then by distance.
+      const seen = new Set<string>();
+      const results = [...searchboxResults, ...fallbackResults].filter((result) => {
+        const key = `${result.id}:${result.center.join(",")}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
       results.sort((a, b) => {
         if (!looksLikeAddress && a.is_poi !== b.is_poi) return a.is_poi ? -1 : 1;
         const da = a.distance_meters ?? Number.POSITIVE_INFINITY;
