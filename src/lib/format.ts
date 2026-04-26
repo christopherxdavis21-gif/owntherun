@@ -55,3 +55,89 @@ export function totalDistance(coords: Array<[number, number]>): number {
   for (let i = 1; i < coords.length; i++) total += haversineMeters(coords[i - 1], coords[i]);
   return total;
 }
+
+export function metersToMiles(m: number): number {
+  return m / METERS_PER_MILE;
+}
+
+export function formatElevation(meters: number): string {
+  const ft = Math.round(meters * 3.28084);
+  return `${ft.toLocaleString()} ft`;
+}
+
+export type AgeBucket =
+  | "all"
+  | "under18"
+  | "18_27"
+  | "28_34"
+  | "35_44"
+  | "45_54"
+  | "55_64"
+  | "65_74"
+  | "75plus";
+
+export function ageFromBirthdate(birthdate: string | null | undefined): number | null {
+  if (!birthdate) return null;
+  const b = new Date(birthdate);
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+
+export function ageInBucket(age: number | null, bucket: AgeBucket): boolean {
+  if (bucket === "all") return true;
+  if (age == null) return false;
+  switch (bucket) {
+    case "under18": return age < 18;
+    case "18_27": return age >= 18 && age <= 27;
+    case "28_34": return age >= 28 && age <= 34;
+    case "35_44": return age >= 35 && age <= 44;
+    case "45_54": return age >= 45 && age <= 54;
+    case "55_64": return age >= 55 && age <= 64;
+    case "65_74": return age >= 65 && age <= 74;
+    case "75plus": return age >= 75;
+  }
+}
+
+export type TimeFilter = "week" | "month" | "year" | "all";
+export function windowStart(filter: TimeFilter): Date | null {
+  if (filter === "all") return null;
+  const d = new Date();
+  if (filter === "week") {
+    const day = d.getDay();
+    const diff = (day + 6) % 7; // Monday-based
+    d.setDate(d.getDate() - diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (filter === "month") return new Date(d.getFullYear(), d.getMonth(), 1);
+  return new Date(d.getFullYear(), 0, 1);
+}
+
+export type DistanceFilter = "any" | "mile" | "5k" | "10k" | "half" | "marathon";
+export function minMetersForDistanceFilter(f: DistanceFilter): number {
+  switch (f) {
+    case "any": return 0;
+    case "mile": return METERS_PER_MILE;
+    case "5k": return 5000;
+    case "10k": return 10000;
+    case "half": return 21097.5;
+    case "marathon": return 42195;
+  }
+}
+
+export type ActivityLabel = "established" | "low";
+export function activityLabel(
+  totalMiles: number,
+  filter: TimeFilter,
+): ActivityLabel {
+  const threshold = filter === "week" ? 3 : filter === "month" ? 10 : 25;
+  return totalMiles >= threshold ? "established" : "low";
+}
+
+export function ownershipThresholdMiles(filter: TimeFilter): number {
+  return filter === "week" ? 3 : filter === "month" ? 10 : 25;
+}
