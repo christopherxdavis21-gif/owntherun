@@ -14,8 +14,10 @@ import { Route as FeedRouteImport } from './routes/feed'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoutesIndexRouteImport } from './routes/routes.index'
+import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as RoutesNewRouteImport } from './routes/routes.new'
 import { Route as RoutesRouteIdRouteImport } from './routes/routes.$routeId'
+import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
   id: '/leaderboards',
@@ -42,6 +44,11 @@ const RoutesIndexRoute = RoutesIndexRouteImport.update({
   path: '/routes/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsIndexRoute = GroupsIndexRouteImport.update({
+  id: '/groups/',
+  path: '/groups/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoutesNewRoute = RoutesNewRouteImport.update({
   id: '/routes/new',
   path: '/routes/new',
@@ -52,14 +59,21 @@ const RoutesRouteIdRoute = RoutesRouteIdRouteImport.update({
   path: '/routes/$routeId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
+  id: '/groups/$groupId',
+  path: '/groups/$groupId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
+  '/groups/': typeof GroupsIndexRoute
   '/routes/': typeof RoutesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -67,8 +81,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
+  '/groups': typeof GroupsIndexRoute
   '/routes': typeof RoutesIndexRoute
 }
 export interface FileRoutesById {
@@ -77,8 +93,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
+  '/groups/': typeof GroupsIndexRoute
   '/routes/': typeof RoutesIndexRoute
 }
 export interface FileRouteTypes {
@@ -88,8 +106,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/feed'
     | '/leaderboards'
+    | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
+    | '/groups/'
     | '/routes/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,8 +117,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/feed'
     | '/leaderboards'
+    | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
+    | '/groups'
     | '/routes'
   id:
     | '__root__'
@@ -106,8 +128,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/feed'
     | '/leaderboards'
+    | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
+    | '/groups/'
     | '/routes/'
   fileRoutesById: FileRoutesById
 }
@@ -116,8 +140,10 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   FeedRoute: typeof FeedRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
+  GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   RoutesRouteIdRoute: typeof RoutesRouteIdRoute
   RoutesNewRoute: typeof RoutesNewRoute
+  GroupsIndexRoute: typeof GroupsIndexRoute
   RoutesIndexRoute: typeof RoutesIndexRoute
 }
 
@@ -158,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoutesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/': {
+      id: '/groups/'
+      path: '/groups'
+      fullPath: '/groups/'
+      preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/routes/new': {
       id: '/routes/new'
       path: '/routes/new'
@@ -172,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoutesRouteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/$groupId': {
+      id: '/groups/$groupId'
+      path: '/groups/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof GroupsGroupIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -180,10 +220,21 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   FeedRoute: FeedRoute,
   LeaderboardsRoute: LeaderboardsRoute,
+  GroupsGroupIdRoute: GroupsGroupIdRoute,
   RoutesRouteIdRoute: RoutesRouteIdRoute,
   RoutesNewRoute: RoutesNewRoute,
+  GroupsIndexRoute: GroupsIndexRoute,
   RoutesIndexRoute: RoutesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
