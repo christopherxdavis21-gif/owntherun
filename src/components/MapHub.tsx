@@ -204,10 +204,19 @@ export function MapHub({ userLocation, nearbyRoutes, onStartFreeRun }: MapHubPro
                     onClick={() => choose(r)}
                     className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-surface"
                   >
-                    <MapPinIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                    <div className="min-w-0">
-                      <div className="truncate font-medium">{r.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">{r.place}</div>
+                    <MapPinIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${r.is_poi ? "text-primary" : "text-muted-foreground"}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate font-medium">{r.name}</span>
+                        {r.distance_meters != null && (
+                          <span className="font-mono-num shrink-0 text-xs text-muted-foreground">
+                            {formatDistance(r.distance_meters)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {r.category ? `${r.category.split(",")[0]} · ` : ""}{r.place}
+                      </div>
                     </div>
                   </button>
                 </li>
