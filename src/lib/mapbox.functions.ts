@@ -160,6 +160,44 @@ function haversineMeters(a: Coord, b: Coord): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+type MapboxFeature = {
+  id: string;
+  text: string;
+  place_name: string;
+  center: Coord;
+  place_type?: string[];
+  properties?: { category?: string };
+};
+
+async function fetchMapboxFeatures(
+  query: string,
+  token: string,
+  types: string,
+  proximity: Coord | undefined,
+  limit: number,
+): Promise<MapboxFeature[]> {
+  const params = new URLSearchParams({
+    access_token: token,
+    limit: String(limit),
+    autocomplete: "true",
+    language: "en",
+    types,
+  });
+  if (proximity) {
+    params.set("proximity", `${proximity[0]},${proximity[1]}`);
+  } else {
+    params.set("proximity", "ip");
+  }
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.error(`Mapbox geocoding (${types}) error: ${res.status} ${res.statusText}`);
+    return [];
+  }
+  const json = (await res.json()) as { features?: MapboxFeature[] };
+  return json.features ?? [];
+}
+
 export const geocodePlace = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const data = input as { query?: string; proximity?: Coord };
@@ -177,37 +215,49 @@ export const geocodePlace = createServerFn({ method: "POST" })
     const token = process.env.MAPBOX_PUBLIC_TOKEN;
     if (!token) throw new Error("Mapbox token not configured");
 
-    const params = new URLSearchParams({
-      access_token: token,
-      limit: "10",
-      autocomplete: "true",
-      // Prioritize businesses/POIs first, then addresses, then places
-      types: "poi,poi.landmark,address,place,locality,neighborhood",
-    });
-    if (data.proximity) {
-      params.set("proximity", `${data.proximity[0]},${data.proximity[1]}`);
-    } else {
-      // Fallback bias to viewer's IP location for better local-first results
-      params.set("proximity", "ip");
-    }
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(data.query)}.json?${params}`;
+    const q = data.query.trim();
+    // Heuristic: queries that start with a digit are likely street addresses,
+    // not business names. Otherwise treat as a possible business search and
+    // run a dedicated POI pass so we get many branches (e.g. all Starbucks).
+    const looksLikeAddress = /^\s*\d/.test(q);
+
     try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error(`Mapbox geocoding error: ${res.status} ${res.statusText}`);
-        return { results: [] as GeocodeResult[], error: `Search unavailable (${res.status})` };
+      const passes: Promise<MapboxFeature[]>[] = [];
+
+      if (looksLikeAddress) {
+        passes.push(fetchMapboxFeatures(q, token, "address,place,locality,neighborhood,poi", data.proximity, 10));
+      } else {
+        // Pass A: businesses/POIs only — gives us multiple chain locations.
+        passes.push(fetchMapboxFeatures(q, token, "poi", data.proximity, 10));
+        // Pass B: addresses + places, for street/landmark fallbacks.
+        passes.push(fetchMapboxFeatures(q, token, "address,place,locality,neighborhood", data.proximity, 5));
       }
-      const json = (await res.json()) as {
-        features?: Array<{
-          id: string;
-          text: string;
-          place_name: string;
-          center: Coord;
-          place_type?: string[];
-          properties?: { category?: string };
-        }>;
-      };
-      const results: GeocodeResult[] = (json.features ?? []).map((f) => {
+
+      const settled = await Promise.all(passes);
+      let features = settled.flat();
+
+      // If proximity-biased POI search returned very few nearby hits, widen
+      // the search to surface farther matches the user can still pick from.
+      if (!looksLikeAddress && data.proximity) {
+        const closeHits = features.filter((f) => {
+          const d = haversineMeters(data.proximity!, f.center);
+          return d <= 25_000 && (f.place_type ?? []).includes("poi");
+        });
+        if (closeHits.length < 3) {
+          const wider = await fetchMapboxFeatures(q, token, "poi", undefined, 10);
+          features = features.concat(wider);
+        }
+      }
+
+      // Dedupe by feature id.
+      const seen = new Set<string>();
+      const unique = features.filter((f) => {
+        if (seen.has(f.id)) return false;
+        seen.add(f.id);
+        return true;
+      });
+
+      const results: GeocodeResult[] = unique.map((f) => {
         const isPoi = (f.place_type ?? []).includes("poi");
         return {
           id: f.id,
@@ -219,14 +269,16 @@ export const geocodePlace = createServerFn({ method: "POST" })
           distance_meters: data.proximity ? Math.round(haversineMeters(data.proximity, f.center)) : null,
         };
       });
-      // Sort: POIs first, then by distance from user (if available)
+
+      // Sort: POIs first (when not address-like), then by distance.
       results.sort((a, b) => {
-        if (a.is_poi !== b.is_poi) return a.is_poi ? -1 : 1;
+        if (!looksLikeAddress && a.is_poi !== b.is_poi) return a.is_poi ? -1 : 1;
         const da = a.distance_meters ?? Number.POSITIVE_INFINITY;
         const db = b.distance_meters ?? Number.POSITIVE_INFINITY;
         return da - db;
       });
-      return { results, error: null as string | null };
+
+      return { results: results.slice(0, 12), error: null as string | null };
     } catch (err) {
       console.error("Mapbox geocoding request failed:", err);
       return { results: [] as GeocodeResult[], error: "Search service unavailable" };
