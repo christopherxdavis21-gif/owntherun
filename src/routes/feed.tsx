@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistance, formatDuration, formatPace } from "@/lib/format";
+import { formatClanTag, formatDistance, formatDuration, formatPace } from "@/lib/format";
 import { Activity, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +16,7 @@ type Run = {
   notes: string | null;
 };
 type RouteLite = { id: string; name: string };
-type Profile = { user_id: string; display_name: string };
+type Profile = { user_id: string; display_name: string; clan_tag: string | null };
 
 export const Route = createFileRoute("/feed")({
   head: () => ({
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/feed")({
 function FeedPage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [routes, setRoutes] = useState<Record<string, string>>({});
-  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<Record<string, { name: string; tag: string | null }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,15 +54,17 @@ function FeedPage() {
           ? supabase.from("routes").select("id, name").in("id", routeIds)
           : Promise.resolve({ data: [] as RouteLite[] }),
         userIds.length
-          ? supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+          ? supabase.from("profiles").select("user_id, display_name, clan_tag").in("user_id", userIds)
           : Promise.resolve({ data: [] as Profile[] }),
       ]);
 
       const rmap: Record<string, string> = {};
       (routeRes.data as RouteLite[] | null)?.forEach((r) => (rmap[r.id] = r.name));
       setRoutes(rmap);
-      const pmap: Record<string, string> = {};
-      (profRes.data as Profile[] | null)?.forEach((p) => (pmap[p.user_id] = p.display_name));
+      const pmap: Record<string, { name: string; tag: string | null }> = {};
+      (profRes.data as Profile[] | null)?.forEach(
+        (p) => (pmap[p.user_id] = { name: p.display_name, tag: p.clan_tag }),
+      );
       setProfiles(pmap);
 
       setLoading(false);
@@ -100,7 +102,12 @@ function FeedPage() {
                 <div className="min-w-0">
                   <div className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      {profiles[r.user_id] ?? "Runner"}
+                      {profiles[r.user_id]?.tag && (
+                        <span className="font-mono-num text-primary">
+                          {formatClanTag(profiles[r.user_id]?.tag)}
+                        </span>
+                      )}
+                      {profiles[r.user_id]?.name ?? "Runner"}
                     </span>{" "}
                     ran{" "}
                     {r.route_id && routes[r.route_id] ? (

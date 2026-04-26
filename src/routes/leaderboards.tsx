@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistance, formatDuration } from "@/lib/format";
+import { formatClanTag, formatDistance, formatDuration } from "@/lib/format";
 import { Trophy, ArrowRight } from "lucide-react";
 
 type RouteWithBest = {
@@ -11,6 +11,7 @@ type RouteWithBest = {
   distance_meters: number;
   best_time: number | null;
   best_user: string | null;
+  best_user_tag: string | null;
   run_count: number;
 };
 
@@ -136,7 +137,9 @@ function LeaderboardsPage() {
                       {formatDuration(b.best_time)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      held by {b.best_user}
+                      held by {b.best_user_tag && (
+                        <span className="font-mono-num text-primary">{formatClanTag(b.best_user_tag)}</span>
+                      )}{b.best_user}
                     </div>
                   </>
                 ) : (
