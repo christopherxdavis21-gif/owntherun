@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { RunTracker } from "@/components/RunTracker";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistance } from "@/lib/format";
-import { Plus, MapPin, Lock, Globe } from "lucide-react";
+import { Plus, MapPin, Lock, Globe, Timer } from "lucide-react";
 
 type RouteRow = {
   id: string;
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/routes/")({
 });
 
 function RoutesIndex() {
-  const [tab, setTab] = useState<"mine" | "discover" | "saved">("mine");
+  const [tab, setTab] = useState<"mine" | "discover" | "saved" | "track">("mine");
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -38,6 +39,10 @@ function RoutesIndex() {
 
   useEffect(() => {
     if (!userId) return;
+    if (tab === "track") {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     (async () => {
       if (tab === "saved") {
@@ -86,21 +91,24 @@ function RoutesIndex() {
         </Link>
       </div>
 
-      <div className="mb-5 flex gap-1 rounded-lg border border-border bg-surface/50 p-1 w-fit">
-        {(["mine", "discover", "saved"] as const).map((t) => (
+      <div className="mb-5 flex flex-wrap gap-1 rounded-lg border border-border bg-surface/50 p-1 w-fit">
+        {(["mine", "discover", "saved", "track"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
               tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "mine" ? "My routes" : t === "discover" ? "Discover" : "Saved"}
+            {t === "track" && <Timer className="h-3.5 w-3.5" />}
+            {t === "mine" ? "My routes" : t === "discover" ? "Discover" : t === "saved" ? "Saved" : "Track a run"}
           </button>
         ))}
       </div>
 
-      {loading ? (
+      {tab === "track" ? (
+        <RunTracker />
+      ) : loading ? (
         <div className="font-mono-num text-sm text-muted-foreground">LOADING…</div>
       ) : routes.length === 0 ? (
         <EmptyState tab={tab} />
@@ -141,7 +149,7 @@ function RoutesIndex() {
   );
 }
 
-function EmptyState({ tab }: { tab: "mine" | "discover" | "saved" }) {
+function EmptyState({ tab }: { tab: "mine" | "discover" | "saved" | "track" }) {
   return (
     <div className="rounded-2xl border border-dashed border-border bg-surface/30 p-12 text-center">
       <p className="font-display text-2xl font-bold">
