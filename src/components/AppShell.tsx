@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { to: "/feed", label: "Feed", icon: Activity },
-    { to: "/routes", label: "Routes", icon: MapIcon },
+    { to: "/routes", label: "Run", icon: MapIcon },
     { to: "/groups", label: "Groups", icon: Users },
     { to: "/leaderboards", label: "Boards", icon: Trophy },
   ] as const;
