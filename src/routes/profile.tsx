@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { formatClanTag, formatDuration, metersToMiles } from "@/lib/format";
+import { formatClanTag } from "@/lib/format";
 import { ShieldCheck, ShieldAlert, Mail, Phone, Trophy, Flame, Activity, Route as RouteIcon } from "lucide-react";
 import { TrophyCard } from "@/components/trophies/TrophyCard";
 import type { AchievementTier } from "@/lib/trophy";
