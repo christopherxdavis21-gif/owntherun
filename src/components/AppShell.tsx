@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2 } from "lucide-react";
+import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2, BarChart3 } from "lucide-react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -29,6 +29,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { to: "/routes", label: "Run", icon: MapIcon },
     { to: "/groups", label: "Groups", icon: Users },
     { to: "/leaderboards", label: "Boards", icon: Trophy },
+    { to: "/trophies", label: "Trophies", icon: Trophy },
+    { to: "/stats", label: "Stats", icon: BarChart3 },
   ] as const;
 
   return (
