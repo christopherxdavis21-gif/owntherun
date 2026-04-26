@@ -88,31 +88,49 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          birthdate: string | null
           clan_group_id: string | null
           clan_tag: string | null
           created_at: string
           display_name: string
+          email_verified: boolean
+          gender: string | null
           id: string
+          is_verified: boolean
+          phone_number: string | null
+          phone_verified: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          birthdate?: string | null
           clan_group_id?: string | null
           clan_tag?: string | null
           created_at?: string
           display_name: string
+          email_verified?: boolean
+          gender?: string | null
           id?: string
+          is_verified?: boolean
+          phone_number?: string | null
+          phone_verified?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          birthdate?: string | null
           clan_group_id?: string | null
           clan_tag?: string | null
           created_at?: string
           display_name?: string
+          email_verified?: boolean
+          gender?: string | null
           id?: string
+          is_verified?: boolean
+          phone_number?: string | null
+          phone_verified?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -154,36 +172,77 @@ export type Database = {
         }
         Relationships: []
       }
+      run_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          run_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          run_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          run_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "run_comments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       runs: {
         Row: {
           created_at: string
           distance_meters: number
           duration_seconds: number
+          elevation_gain_meters: number
           id: string
           notes: string | null
           ran_at: string
           route_id: string | null
           user_id: string
+          visibility: Database["public"]["Enums"]["run_visibility"]
         }
         Insert: {
           created_at?: string
           distance_meters: number
           duration_seconds: number
+          elevation_gain_meters?: number
           id?: string
           notes?: string | null
           ran_at?: string
           route_id?: string | null
           user_id: string
+          visibility?: Database["public"]["Enums"]["run_visibility"]
         }
         Update: {
           created_at?: string
           distance_meters?: number
           duration_seconds?: number
+          elevation_gain_meters?: number
           id?: string
           notes?: string | null
           ran_at?: string
           route_id?: string | null
           user_id?: string
+          visibility?: Database["public"]["Enums"]["run_visibility"]
         }
         Relationships: [
           {
@@ -216,6 +275,45 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_views: {
+        Row: {
+          age_filter: string | null
+          category: string
+          created_at: string
+          distance_filter: string | null
+          gender_filter: string | null
+          id: string
+          is_default: boolean
+          name: string
+          time_filter: string
+          user_id: string
+        }
+        Insert: {
+          age_filter?: string | null
+          category: string
+          created_at?: string
+          distance_filter?: string | null
+          gender_filter?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          time_filter: string
+          user_id: string
+        }
+        Update: {
+          age_filter?: string | null
+          category?: string
+          created_at?: string
+          distance_filter?: string | null
+          gender_filter?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          time_filter?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -227,7 +325,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      run_visibility: "private" | "public" | "leaderboard"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -354,6 +452,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      run_visibility: ["private", "public", "leaderboard"],
+    },
   },
 } as const
