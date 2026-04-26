@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatClanTag } from "@/lib/format";
-import { ShieldCheck, ShieldAlert, Mail, Phone, Trophy, Flame, Activity, Route as RouteIcon } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Mail, Trophy, Flame, Activity, Route as RouteIcon } from "lucide-react";
 import { TrophyCard } from "@/components/trophies/TrophyCard";
 import type { AchievementTier } from "@/lib/trophy";
 
@@ -31,8 +31,6 @@ type ProfileRow = {
   clan_group_id: string | null;
   gender: string | null;
   birthdate: string | null;
-  phone_number: string | null;
-  phone_verified: boolean;
   email_verified: boolean;
   is_verified: boolean;
 };
@@ -45,8 +43,6 @@ function ProfilePage() {
   const [clanGroupId, setClanGroupId] = useState<string>("");
   const [gender, setGender] = useState<string>("undisclosed");
   const [birthdate, setBirthdate] = useState<string>("");
-  const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [phoneVerified, setPhoneVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [groups, setGroups] = useState<GroupOption[]>([]);
@@ -64,10 +60,6 @@ function ProfilePage() {
     Array<{ code: string; title: string; description: string; tier: AchievementTier; icon: string; earned_at: string }>
   >([]);
 
-  // Phone OTP state
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpBusy, setOtpBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -75,7 +67,7 @@ function ProfilePage() {
       const [{ data: profile }, { data: members }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("display_name, clan_tag, clan_group_id, gender, birthdate, phone_number, phone_verified, email_verified, is_verified")
+          .select("display_name, clan_tag, clan_group_id, gender, birthdate, email_verified, is_verified")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("group_members").select("group_id").eq("user_id", user.id),
@@ -88,8 +80,6 @@ function ProfilePage() {
         setClanGroupId(p.clan_group_id ?? "");
         setGender(p.gender ?? "undisclosed");
         setBirthdate(p.birthdate ?? "");
-        setPhoneNumber(p.phone_number ?? "");
-        setPhoneVerified(!!p.phone_verified);
         setEmailVerified(!!p.email_verified);
         setIsVerified(!!p.is_verified);
       }
@@ -181,46 +171,6 @@ function ProfilePage() {
     else toast.success("Verification email sent");
   }
 
-  async function sendPhoneOtp() {
-    if (!phoneNumber.trim()) return toast.error("Enter a phone number");
-    setOtpBusy(true);
-    // updateUser triggers SMS OTP for phone change
-    const { error } = await supabase.auth.updateUser({ phone: phoneNumber.trim() });
-    setOtpBusy(false);
-    if (error) {
-      toast.error(error.message + " (SMS provider must be configured in Cloud)");
-      return;
-    }
-    setOtpSent(true);
-    toast.success("Code sent — check your texts");
-  }
-
-  async function confirmPhoneOtp() {
-    if (!otpCode.trim() || !user) return;
-    setOtpBusy(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: phoneNumber.trim(),
-      token: otpCode.trim(),
-      type: "phone_change",
-    });
-    if (error) {
-      setOtpBusy(false);
-      toast.error(error.message);
-      return;
-    }
-    // mark verified in profile
-    const { error: pErr } = await supabase
-      .from("profiles")
-      .update({ phone_number: phoneNumber.trim(), phone_verified: true })
-      .eq("user_id", user.id);
-    setOtpBusy(false);
-    if (pErr) return toast.error(pErr.message);
-    setPhoneVerified(true);
-    setIsVerified(emailVerified && true);
-    setOtpSent(false);
-    setOtpCode("");
-    toast.success("Phone verified! You're ready to compete.");
-  }
 
   if (loading) {
     return (
@@ -256,7 +206,7 @@ function ProfilePage() {
             </p>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Verify your email and phone to submit runs to public leaderboards. Private runs
+            Verify your email to submit runs to public leaderboards. Private runs
             don't need verification.
           </p>
 
@@ -272,44 +222,6 @@ function ProfilePage() {
                 <Button size="sm" variant="outline" onClick={resendEmailVerification}>
                   Resend
                 </Button>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Phone</span>
-                {phoneVerified && (
-                  <span className="font-mono-num ml-auto text-xs font-bold text-primary">VERIFIED</span>
-                )}
-              </div>
-              {!phoneVerified && (
-                <>
-                  <Input
-                    type="tel"
-                    placeholder="+15551234567"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    disabled={otpSent}
-                  />
-                  {!otpSent ? (
-                    <Button size="sm" onClick={sendPhoneOtp} disabled={otpBusy} className="w-full">
-                      {otpBusy ? "Sending…" : "Send code"}
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="6-digit code"
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value)}
-                        className="font-mono-num"
-                      />
-                      <Button onClick={confirmPhoneOtp} disabled={otpBusy}>
-                        {otpBusy ? "…" : "Confirm"}
-                      </Button>
-                    </div>
-                  )}
-                </>
               )}
             </div>
           </div>
