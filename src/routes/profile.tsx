@@ -315,6 +315,55 @@ function ProfilePage() {
           </div>
         </div>
 
+        {/* Stats summary strip */}
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="font-display text-lg font-bold">Your stats</p>
+            <Link to="/stats" className="text-xs text-primary hover:underline">View full stats →</Link>
+          </div>
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            {[
+              { label: "MILES", value: summary.miles.toFixed(1), icon: RouteIcon },
+              { label: "RUNS", value: String(summary.runs), icon: Activity },
+              { label: "STREAK", value: `${summary.streak}d`, icon: Flame },
+              { label: "MEDALS", value: String(summary.medals), icon: Trophy },
+            ].map((t) => (
+              <div key={t.label} className="rounded-lg border border-border bg-surface/40 p-2 text-center">
+                <t.icon className="mx-auto h-3.5 w-3.5 text-muted-foreground" />
+                <p className="font-mono-num mt-1 text-base font-bold tabular-nums text-primary">{t.value}</p>
+                <p className="font-mono-num text-[9px] uppercase tracking-wider text-muted-foreground">{t.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent trophies preview */}
+        <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between">
+            <p className="font-display text-lg font-bold">Trophy case</p>
+            <Link to="/trophies" className="text-xs text-primary hover:underline">View all →</Link>
+          </div>
+          {recentTrophies.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              No trophies yet — log a run to start unlocking them.
+            </p>
+          ) : (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {recentTrophies.map((t) => (
+                <TrophyCard
+                  key={t.code}
+                  title={t.title}
+                  description={t.description}
+                  tier={t.tier}
+                  icon={t.icon}
+                  earned
+                  earnedAt={t.earned_at}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="mt-6 space-y-5 rounded-2xl border border-border bg-card p-6">
           <div className="space-y-2">
             <Label htmlFor="name">Display name</Label>
