@@ -119,6 +119,25 @@ function RunHubPage() {
         />
       </div>
 
+      {/* Location status banner */}
+      {locationStatus !== "granted" && (
+        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+          <div>
+            <span className="font-semibold text-amber-200">Location off.</span>{" "}
+            <span className="text-muted-foreground">
+              {locationStatus === "denied"
+                ? "We can't show or search places near you. Allow location access in your browser, then retry."
+                : locationStatus === "unavailable"
+                  ? "Your device couldn't share a location. Search results will not be local."
+                  : "Searches won't be biased to your area until you share your location."}
+            </span>
+          </div>
+          <Button size="sm" variant="outline" onClick={requestLocation} className="shrink-0">
+            {locationStatus === "requesting" ? "Locating…" : "Use my location"}
+          </Button>
+        </div>
+      )}
+
       {/* Web background-tracking notice */}
       <div className="mb-6 rounded-xl border border-border bg-surface/40 p-3 text-xs text-muted-foreground">
         <span className="font-semibold text-foreground">Heads up:</span> on the web, keep this tab in the foreground while running.
