@@ -28,7 +28,12 @@ import { Play, Pause, Square, MapPin, Loader2, RotateCcw } from "lucide-react";
 type Coord = [number, number];
 type Visibility = "private" | "public" | "leaderboard";
 
-export function RunTracker() {
+interface RunTrackerProps {
+  /** Optional pre-planned route polyline to display as a faint guide line. */
+  plannedPath?: Coord[];
+}
+
+export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<"idle" | "running" | "paused" | "stopped">(
     "idle",
@@ -46,6 +51,7 @@ export function RunTracker() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // Save form
   const [notes, setNotes] = useState("");
