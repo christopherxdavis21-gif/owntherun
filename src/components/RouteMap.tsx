@@ -301,7 +301,7 @@ export function RouteMap({
       <div ref={mapContainer} className="h-full w-full" />
 
       {showViewControls && (
-        <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-col gap-2">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-2">
           <div className="pointer-events-auto relative">
             <button
               type="button"
@@ -313,7 +313,7 @@ export function RouteMap({
               {STYLE_LABELS[styleId]}
             </button>
             {styleMenuOpen && (
-              <div className="absolute left-0 top-10 w-36 overflow-hidden rounded-md border border-border bg-background/95 shadow-lg backdrop-blur">
+              <div className="absolute bottom-10 left-0 w-36 overflow-hidden rounded-md border border-border bg-background/95 shadow-lg backdrop-blur">
                 {(Object.keys(STYLE_URLS) as MapStyleId[]).map((id) => (
                   <button
                     key={id}
