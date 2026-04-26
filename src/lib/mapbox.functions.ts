@@ -132,3 +132,59 @@ export const computeElevationGain = createServerFn({ method: "POST" })
     }
     return { elevation_gain_meters: Math.round(gain) };
   });
+
+/**
+ * Forward geocoding via Mapbox Places API. Biased to user's current location
+ * via `proximity` so "Starbucks" returns the nearest ones first.
+ */
+export type GeocodeResult = {
+  id: string;
+  name: string;
+  place: string; // longer human-readable address
+  center: Coord;
+};
+
+export const geocodePlace = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const data = input as { query?: string; proximity?: Coord };
+    if (!data?.query || typeof data.query !== "string") {
+      throw new Error("query required");
+    }
+    return {
+      query: data.query.slice(0, 200),
+      proximity: Array.isArray(data.proximity) && data.proximity.length === 2
+        ? (data.proximity as Coord)
+        : undefined,
+    };
+  })
+  .handler(async ({ data }) => {
+    const token = process.env.MAPBOX_PUBLIC_TOKEN;
+    if (!token) throw new Error("Mapbox token not configured");
+
+    const params = new URLSearchParams({
+      access_token: token,
+      limit: "5",
+      autocomplete: "true",
+    });
+    if (data.proximity) {
+      params.set("proximity", `${data.proximity[0]},${data.proximity[1]}`);
+    }
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox/places/${encodeURIComponent(data.query)}.json?${params}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Mapbox geocoding error: ${res.status}`);
+    const json = (await res.json()) as {
+      features?: Array<{
+        id: string;
+        text: string;
+        place_name: string;
+        center: Coord;
+      }>;
+    };
+    const results: GeocodeResult[] = (json.features ?? []).map((f) => ({
+      id: f.id,
+      name: f.text,
+      place: f.place_name,
+      center: f.center,
+    }));
+    return { results };
+  });

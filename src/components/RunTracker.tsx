@@ -28,7 +28,12 @@ import { Play, Pause, Square, MapPin, Loader2, RotateCcw } from "lucide-react";
 type Coord = [number, number];
 type Visibility = "private" | "public" | "leaderboard";
 
-export function RunTracker() {
+interface RunTrackerProps {
+  /** Optional pre-planned route polyline to display as a faint guide line. */
+  plannedPath?: Coord[];
+}
+
+export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<"idle" | "running" | "paused" | "stopped">(
     "idle",
@@ -46,6 +51,7 @@ export function RunTracker() {
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef(0);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // Save form
   const [notes, setNotes] = useState("");
@@ -72,8 +78,43 @@ export function RunTracker() {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
       if (tickRef.current) clearInterval(tickRef.current);
+      releaseWakeLock();
     };
   }, []);
+
+  // Re-acquire wake lock when tab becomes visible again (browsers auto-release on hide)
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible" && (status === "running")) {
+        void requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [status]);
+
+  async function requestWakeLock() {
+    try {
+      const navAny = navigator as Navigator & {
+        wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> };
+      };
+      if (navAny.wakeLock?.request) {
+        wakeLockRef.current = await navAny.wakeLock.request("screen");
+      }
+    } catch {
+      // Non-fatal — older browsers / iOS Safari versions just don't have it
+    }
+  }
+
+  function releaseWakeLock() {
+    try {
+      wakeLockRef.current?.release();
+    } catch {
+      /* ignore */
+    }
+    wakeLockRef.current = null;
+  }
+
 
   const startTimer = () => {
     startedAtRef.current = Date.now();
@@ -164,21 +205,25 @@ export function RunTracker() {
     setPermError(null);
     if (!beginWatch()) return;
     startTimer();
+    void requestWakeLock();
     setStatus("running");
   };
   const handlePause = () => {
     endWatch();
     stopTimer();
+    releaseWakeLock();
     setStatus("paused");
   };
   const handleResume = () => {
     if (!beginWatch()) return;
     startTimer();
+    void requestWakeLock();
     setStatus("running");
   };
   const handleStop = () => {
     endWatch();
     stopTimer();
+    releaseWakeLock();
     setStatus("stopped");
     if (coords.length > 0) {
       const now = new Date();
@@ -275,6 +320,8 @@ export function RunTracker() {
       <div className="space-y-3">
         <RouteMap
           coordinates={coords}
+          plannedPath={plannedPath}
+          userLocation={center}
           initialCenter={center}
           className="h-[420px] w-full"
         />
