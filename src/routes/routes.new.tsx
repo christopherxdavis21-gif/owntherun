@@ -154,6 +154,7 @@ function NewRoutePage() {
             onChange={setCoords}
             editable
             initialCenter={center}
+            userLocation={center}
             className="h-[520px] w-full"
           />
           <div className="flex flex-wrap items-center gap-2">
