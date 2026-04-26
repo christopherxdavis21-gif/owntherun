@@ -28,11 +28,15 @@ export const Route = createFileRoute("/routes/new")({
 function NewRoutePage() {
   const navigate = useNavigate();
   const [coords, setCoords] = useState<Coord[]>([]);
+  const [snapped, setSnapped] = useState<Coord[] | undefined>(undefined);
+  const [snappedDistance, setSnappedDistance] = useState<number | null>(null);
+  const [snapping, setSnapping] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [center, setCenter] = useState<Coord | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const reqIdRef = useRef(0);
 
   // Try to center on the user's location
   useEffect(() => {
@@ -46,7 +50,34 @@ function NewRoutePage() {
     );
   }, []);
 
-  const distance = totalDistance(coords);
+  // Snap waypoints to roads whenever they change
+  useEffect(() => {
+    if (coords.length < 2) {
+      setSnapped(undefined);
+      setSnappedDistance(null);
+      return;
+    }
+    const myReq = ++reqIdRef.current;
+    setSnapping(true);
+    snapToRoads({ data: { waypoints: coords } })
+      .then((res) => {
+        if (myReq !== reqIdRef.current) return;
+        setSnapped(res.coordinates as Coord[]);
+        setSnappedDistance(res.distance_meters);
+      })
+      .catch((err) => {
+        if (myReq !== reqIdRef.current) return;
+        setSnapped(undefined);
+        setSnappedDistance(null);
+        const msg = err instanceof Error ? err.message : "Could not snap to roads";
+        toast.error(msg);
+      })
+      .finally(() => {
+        if (myReq === reqIdRef.current) setSnapping(false);
+      });
+  }, [coords]);
+
+  const distance = snappedDistance ?? totalDistance(coords);
 
   const undo = () => setCoords((c) => c.slice(0, -1));
   const clear = () => setCoords([]);
@@ -54,17 +85,19 @@ function NewRoutePage() {
   const save = async () => {
     if (!name.trim()) return toast.error("Give your route a name");
     if (coords.length < 2) return toast.error("Drop at least 2 points to make a route");
+    if (snapping) return toast.error("Still snapping to roads — hold on a sec");
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not signed in");
+      const coordinates = snapped ?? coords;
       const { data, error } = await supabase
         .from("routes")
         .insert({
           user_id: userData.user.id,
           name: name.trim(),
           description: description.trim() || null,
-          coordinates: coords,
+          coordinates,
           distance_meters: distance,
           is_public: isPublic,
         })
