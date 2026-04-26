@@ -185,9 +185,10 @@ async function fetchMapboxFeatures(
   });
   if (proximity) {
     params.set("proximity", `${proximity[0]},${proximity[1]}`);
-  } else {
-    params.set("proximity", "ip");
   }
+  // NOTE: do NOT use proximity=ip — on a serverless worker the IP is the
+  // datacenter, which biases results to random regions of the world. If we
+  // don't have a real client coordinate, just run an unbiased search.
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params}`;
   const res = await fetch(url);
   if (!res.ok) {
