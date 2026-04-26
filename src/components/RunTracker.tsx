@@ -320,6 +320,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       <div className="space-y-3">
         <RouteMap
           coordinates={coords}
+          plannedPath={plannedPath}
+          userLocation={center}
           initialCenter={center}
           className="h-[420px] w-full"
         />
