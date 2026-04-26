@@ -301,7 +301,7 @@ export function RouteMap({
       <div ref={mapContainer} className="h-full w-full" />
 
       {showViewControls && (
-        <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-col gap-2">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-2">
           <div className="pointer-events-auto relative">
             <button
               type="button"
