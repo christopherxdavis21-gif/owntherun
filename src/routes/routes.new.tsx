@@ -38,6 +38,29 @@ function NewRoutePage() {
   const [saving, setSaving] = useState(false);
   const reqIdRef = useRef(0);
 
+  // Hydrate from a "save as route" seed left in sessionStorage by MapHub
+  useEffect(() => {
+    const raw = sessionStorage.getItem("catchup:newRouteSeed");
+    if (!raw) return;
+    sessionStorage.removeItem("catchup:newRouteSeed");
+    try {
+      const seed = JSON.parse(raw) as {
+        waypoints?: Coord[];
+        path?: Coord[];
+        suggestedName?: string;
+      };
+      if (seed.waypoints && seed.waypoints.length >= 2) {
+        setCoords(seed.waypoints);
+        if (seed.path) {
+          setSnapped(seed.path);
+        }
+      }
+      if (seed.suggestedName) setName(seed.suggestedName);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Try to center on the user's location
   useEffect(() => {
     if (!navigator.geolocation) return;
