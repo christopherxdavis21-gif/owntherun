@@ -147,6 +147,42 @@ function RouteDetailPage() {
     navigate({ to: "/routes" });
   };
 
+  const toggleSave = async () => {
+    if (!route || !userId) return;
+    if (saved) {
+      const { error } = await supabase
+        .from("saved_routes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("route_id", route.id);
+      if (error) return toast.error(error.message);
+      setSaved(false);
+      toast.success("Removed from saved");
+    } else {
+      const { error } = await supabase
+        .from("saved_routes")
+        .insert({ user_id: userId, route_id: route.id });
+      if (error) return toast.error(error.message);
+      setSaved(true);
+      toast.success("Saved to your library");
+    }
+  };
+
+  const shareRoute = async () => {
+    if (!route) return;
+    const url = `${window.location.origin}/routes/${route.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: route.name, text: `Run ${route.name} on Catch Up`, url });
+        return;
+      } catch {
+        // fall through to clipboard
+      }
+    }
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied");
+  };
+
   if (loading) {
     return (
       <AppShell>
@@ -198,6 +234,20 @@ function RouteDetailPage() {
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
           </Button>
         )}
+        <div className="flex gap-2">
+          {!isOwner && route.is_public && (
+            <Button variant={saved ? "default" : "outline"} size="sm" onClick={toggleSave} className="gap-1">
+              <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-current" : ""}`} />
+              {saved ? "Saved" : "Save"}
+            </Button>
+          )}
+          {route.is_public && (
+            <Button variant="outline" size="sm" onClick={shareRoute} className="gap-1">
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-3 gap-3">
@@ -237,7 +287,12 @@ function RouteDetailPage() {
                       </span>
                       <div className="min-w-0">
                         <div className="truncate font-medium">
-                          {profiles[r.user_id] ?? "Runner"}
+                          {profiles[r.user_id]?.tag && (
+                            <span className="font-mono-num text-primary">
+                              {formatClanTag(profiles[r.user_id]?.tag)}
+                            </span>
+                          )}
+                          {profiles[r.user_id]?.name ?? "Runner"}
                           {r.user_id === userId && (
                             <span className="ml-1.5 text-xs text-primary">you</span>
                           )}
