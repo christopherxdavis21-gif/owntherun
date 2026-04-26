@@ -205,21 +205,25 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     setPermError(null);
     if (!beginWatch()) return;
     startTimer();
+    void requestWakeLock();
     setStatus("running");
   };
   const handlePause = () => {
     endWatch();
     stopTimer();
+    releaseWakeLock();
     setStatus("paused");
   };
   const handleResume = () => {
     if (!beginWatch()) return;
     startTimer();
+    void requestWakeLock();
     setStatus("running");
   };
   const handleStop = () => {
     endWatch();
     stopTimer();
+    releaseWakeLock();
     setStatus("stopped");
     if (coords.length > 0) {
       const now = new Date();
