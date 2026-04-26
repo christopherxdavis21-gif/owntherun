@@ -1,128 +1,115 @@
-## Overview
+# Engagement Layer: Trophies, Medals, Challenges & Stats
 
-Two big things bundled into one pass:
-
-1. **Reimagine the Routes tab as "Run"** — a map-first hub centered on the user where they can start a free run, pick a nearby community route, search a destination ("nearest Starbucks") and get a route mapped for them, jump into route creation, or browse saved routes. Route detail pages already have leaderboards — we'll surface them more prominently.
-2. **Background tracking + lock-screen controls** (the previously-discussed Capacitor work) so runs keep recording when the phone is locked or in your pocket, with Pause/Resume/Stop on the lock screen and Live Activities on iOS.
+This plan layers a full engagement system on top of the existing `runs`, `profiles`, and `groups` tables, plus a new **personal stats dashboard** so every runner has one clear place to see their progress.
 
 ---
 
-## Part 1 — Rename + Map-First "Run" Hub
+## 1. Database (new migration)
 
-### 1a. Rename "Routes" → "Run" everywhere user-facing
-- `src/components/AppShell.tsx`: change the nav item label from "Routes" to "Run" (icon stays `MapIcon`). URL stays `/routes` to avoid breaking saved/shared links — only the label changes.
-- Update page titles/copy in `src/routes/routes.index.tsx`, `routes.new.tsx`, `routes.$routeId.tsx` from "Routes" / "Your running library" to "Run" / "Where to today?" style copy.
-- Top nav "New Route" button stays — still useful as a shortcut.
+### New tables
+- **`achievement_definitions`** — catalog of unlockable trophies. Columns: `code` (e.g. `lifetime_miles_100`, `streak_7`, `single_run_10mi`, `elevation_5000ft`), `title`, `description`, `tier` (bronze/silver/gold/platinum), `icon`, `category` (distance / streak / elevation / speed / social), `criteria` JSONB (declarative rule).
+- **`user_achievements`** — `(user_id, achievement_code, earned_at, run_id)`. Insert-only via trigger; RLS allows SELECT for everyone, no client INSERT/UPDATE/DELETE.
+- **`medals`** — `(user_id, period_type, period_start, scope, scope_id, category, rank, awarded_at)`. `scope` = `global` | `group`; `category` = `distance` | `pace` | `elevation`; `rank` 1-3 (gold/silver/bronze).
+- **`challenges`** — `(id, scope, scope_id, title, description, metric, target_value, starts_at, ends_at, created_by, is_system)`. Scopes: `system` (app-wide weekly/monthly/yearly), `group`, `personal`.
+- **`user_challenge_progress`** — `(user_id, challenge_id, progress_value, completed_at)`. Updated by trigger.
+- **`user_stats`** (materialized cache) — `(user_id, lifetime_meters, lifetime_seconds, lifetime_elevation, lifetime_runs, longest_run_meters, fastest_mile_seconds, current_streak_days, longest_streak_days, last_run_at, updated_at)`. Recomputed on run insert.
 
-### 1b. Restructure `src/routes/routes.index.tsx` as a map-first hub
-Replace the current tabs-of-cards layout with a single unified screen:
+### Triggers & functions (SECURITY DEFINER, server-side anti-cheat)
+- `AFTER INSERT ON runs` →
+  1. Upsert `user_stats` (recompute lifetime totals + streak from prior `last_run_at`).
+  2. Evaluate every row in `achievement_definitions` against the new totals; insert into `user_achievements` for any newly satisfied criteria.
+  3. Bump `user_challenge_progress` for any active challenges the user is enrolled in (or auto-enrolled in for `system` scope).
+- `pg_cron` jobs:
+  - Weekly/monthly/yearly: close the period, rank verified leaderboard runs, insert top-3 into `medals` (global + per group).
+  - Daily: seed the next system challenge if none active.
 
-**Top section — full-width map (`h-[60vh]` desktop, `h-[55vh]` mobile)**
-- Centers on user's current location on mount (existing `navigator.geolocation.getCurrentPosition` pattern).
-- Renders pins for nearby **public routes** (queried within ~25km of user via a bounding-box filter on the route's first coordinate — done client-side after fetching public routes since we don't have PostGIS).
-- Each pin is color-coded: green = community public routes, gold = your saved routes, blue = your own routes.
-- Clicking a pin opens a small popup: route name, distance, best leaderboard time, "Open route" + "Start run on this route" buttons.
-- A floating **search bar** overlay (top of map): "Search a place to run to…" — uses Mapbox Geocoding API (new server fn, see 1c).
-- A floating **action stack** (bottom-right of map):
-  - 🟢 **Start free run** (primary, big) — opens the existing `RunTracker` in a sheet/dialog or routes to a new `/routes/track` view.
-  - ➕ **Create route** — links to existing `/routes/new`.
-  - 📍 **Recenter** — re-centers map on user.
-
-**Below the map — three horizontally-scrolling rails**
-- **Nearby routes** — public routes within ~25km, sorted by distance from user.
-- **Saved routes** — pulled from `saved_routes` table (existing).
-- **Your routes** — pulled by `user_id` (existing).
-
-Each rail item is a compact card showing name, distance, best time on it (1 query per rail using the existing `routes` + `runs` tables), and an "open" link. If a rail has nothing, it's hidden (no empty-state cards eating space).
-
-**Remove the "Track a run" tab** — it's now the floating Start button on the map. The existing `RunTracker` component is reused unchanged (it already handles GPS, save-as-route, leaderboard submission).
-
-### 1c. Location search → "route me there" (the Starbucks use case)
-Add two new server functions to `src/lib/mapbox.functions.ts`:
-
-```ts
-// Forward geocoding — convert a search query to a place
-export const geocodePlace = createServerFn({ method: "POST" })
-  .inputValidator(...) // { query: string, proximity?: [lng, lat] }
-  .handler(...) // calls https://api.mapbox.com/geocoding/v5/mapbox/places/{query}.json
-
-// Already exists: snapToRoads — reused as-is
-```
-
-When the user searches "nearest Starbucks":
-1. Call `geocodePlace` with their current location as `proximity` bias.
-2. Show top 3-5 results in a dropdown beneath the search bar.
-3. On selection, call the existing `snapToRoads` with `[userLocation, destinationCoords]` to generate a walking-route polyline.
-4. Render the suggested route on the map in dashed orange. Show distance + estimated walking time.
-5. Two buttons appear: **"Start run with this route"** (opens `RunTracker` pre-loaded with the polyline as the planned path) and **"Save as route"** (opens `/routes/new` pre-populated with the waypoints).
-
-The `RunTracker` component gets a new optional `plannedPath?: Coord[]` prop — when provided, the map shows the planned polyline as a faint guide line beneath the live-traced run, so the runner can follow it.
-
-### 1d. Surface route leaderboards on the map cards
-The leaderboard already exists on `routes.$routeId.tsx`. We'll just:
-- Show **best time + best runner's display name** on every nearby-route map popup and rail card.
-- Add a small `<Trophy>` chip badge on the rail card if the route has 5+ leaderboard submissions ("hot route").
-
-No database changes — the data is already there in `runs` filtered by `route_id` and `visibility = 'leaderboard'`.
-
-### 1e. Files touched in Part 1
-- **Modified**: `src/components/AppShell.tsx` (nav label), `src/routes/routes.index.tsx` (full rewrite to map hub), `src/components/RunTracker.tsx` (accept `plannedPath` prop), `src/components/RouteMap.tsx` (accept `markers` array prop for showing nearby-route pins + popups), `src/lib/mapbox.functions.ts` (add `geocodePlace`).
-- **New**: `src/components/MapHub.tsx` (the new map-with-search-and-actions component, used inside `routes.index.tsx`).
-- **No DB changes**.
+### Seed data
+Migration seeds ~20 starter achievements (First Run, 10 / 50 / 100 / 500 / 1000 lifetime miles, 7 / 30 / 100-day streaks, sub-8 / sub-7 / sub-6 mile, 5K / 10K / half / marathon distance, 1000ft / 5000ft elevation, group founder, first leaderboard medal) and the first weekly system challenge.
 
 ---
 
-## Part 2 — Background Tracking + Lock-Screen Controls (Capacitor)
+## 2. New routes
 
-This is the previously-discussed plan. Recap of what gets built:
+- **`/trophies`** — full Trophy Case: earned vs. locked grid, filter by category/tier, medal shelf (gold/silver/bronze with period & scope), active challenges with progress bars.
+- **`/challenges`** — browse system/group challenges, join/leave, create personal challenge (distance, elevation, streak, time-window).
+- **`/stats`** — **personal stats dashboard** (see §3).
 
-### 2a. Web fallback (works immediately in the Lovable preview)
-- Add Screen Wake Lock to `RunTracker.tsx` — when a run starts, request `navigator.wakeLock.request("screen")` so the phone screen doesn't auto-lock. Release on stop/pause.
-- Add an in-app banner before starting on web: "On the web, keep this tab open to record. For background tracking, install the mobile app."
-
-### 2b. Capacitor wrapper (the real fix — runs on iOS/Android)
-- Install `@capacitor/core`, `@capacitor/cli`, `@capacitor-community/background-geolocation`, `@capacitor/local-notifications`, `capacitor-live-activities`.
-- Create `capacitor.config.ts` with app id, name, web dir.
-- Create `src/lib/tracking.ts` — a platform-aware abstraction:
-  ```ts
-  export function startTracking(opts) {
-    if (Capacitor.isNativePlatform()) {
-      // BackgroundGeolocation.addWatcher with foreground service notification
-    } else {
-      // navigator.geolocation.watchPosition + Wake Lock
-    }
-  }
-  ```
-- Refactor `RunTracker.tsx` to call `startTracking` / `stopTracking` / `pauseTracking` instead of touching `navigator.geolocation` directly.
-
-### 2c. Lock-screen controls
-- **Android**: The background-geolocation plugin already creates a foreground-service notification. We extend it via `@capacitor/local-notifications` to add Pause/Resume/Stop action buttons + live stat updates (distance, time, pace, elevation refreshed every 3 seconds while running). The notification renders on the lock screen automatically.
-- **iOS Live Activity**: Scaffold a SwiftUI widget file (`ios/App/RunActivity/RunActivity.swift`) that displays distance/time/pace/elevation + Pause/Resume/Stop buttons. Integrate via `capacitor-live-activities` plugin so it appears on the lock screen + Dynamic Island. Updates pushed from JS via the plugin's `update()` API.
-- Tapping notification actions calls `pauseTracking()`/`resumeTracking()`/`stopTracking()` in the same `tracking.ts` abstraction, which broadcasts state back to React via a custom event so the in-app UI stays in sync.
-
-### 2d. Mobile build instructions
-Create `README-mobile.md` covering:
-- `bun install` then `npx cap add ios` / `npx cap add android`
-- iOS: `Info.plist` entries (`NSLocationAlwaysAndWhenInUseUsageDescription`, `UIBackgroundModes: location`)
-- Android: `AndroidManifest.xml` entries (`ACCESS_BACKGROUND_LOCATION`, foreground-service declaration)
-- `npx cap open ios` / `npx cap open android` to build with Xcode/Android Studio
-- Note: Lovable's preview will continue to use the web fallback — the lock-screen experience only activates after building the native app on a Mac (iOS) or any machine (Android).
-
-### 2e. Files touched in Part 2
-- **Modified**: `src/components/RunTracker.tsx` (use `tracking.ts` abstraction + Wake Lock fallback), `package.json` (new deps).
-- **New**: `src/lib/tracking.ts`, `capacitor.config.ts`, `ios/App/RunActivity/RunActivity.swift` (scaffold), `README-mobile.md`.
+All three added to `AppShell` nav.
 
 ---
 
-## Build order
+## 3. Personal stats dashboard (`/stats`)
 
-1. Part 1a–1e first (the visible UX win — works immediately in the Lovable preview).
-2. Part 2a (web Wake Lock) — small, ships immediately.
-3. Part 2b–2e (Capacitor + native lock-screen) — bundled second since the native build itself happens on your machine, not in Lovable.
+Pulled from `user_stats` + run history. Sections:
 
-Everything is one continuous pass — no waiting between parts.
+1. **Headline tiles** — Lifetime miles, total runs, total time, total elevation, current streak, longest streak.
+2. **This week / month / year** — Miles, runs, avg pace, elevation (bar chart with prior-period delta).
+3. **Personal bests** — Fastest mile, fastest 5K/10K/half/marathon (derived from runs ≥ that distance), longest run, biggest elevation day.
+4. **Activity heatmap** — GitHub-style 365-day grid colored by daily mileage.
+5. **Recent trophies** — Last 5 unlocks with link to `/trophies`.
+6. **Active challenges** — Progress bars with deadlines.
+7. **Medal shelf** — Compact row of current-period medals.
 
-## What stays unchanged
-- All database tables, RLS, edge functions, auth, profiles, groups, leaderboards page, feed page.
-- The `/routes`, `/routes/new`, `/routes/$routeId` URLs (only labels change).
-- Existing route-detail leaderboard logic (just gets surfaced earlier in the journey).
+Uses Recharts (already common in the stack) for the bar/line/heatmap visuals.
+
+---
+
+## 4. Profile integration (`/profile`)
+
+Add below the runner card:
+- **Stats summary strip** — 4 tiles (lifetime miles, runs, current streak, medals) with a "View full stats" link to `/stats`.
+- **Trophy Case preview** — Last 6 earned trophies + "View all" link to `/trophies`.
+
+When viewing another user's profile (future), the same components render in read-only mode.
+
+---
+
+## 5. Feed integration (`/feed`)
+
+- **`TrophyShelf` rail** at the top of the feed showing the current user's active challenges + most-recent trophy (horizontal scroll).
+- **Achievement announcement cards** interleaved into the activity stream (e.g. "🏆 Sarah just earned **100-Mile Club**") — query `user_achievements` joined with `profiles`, merged with runs by timestamp.
+- Run cards get a small trophy badge when that specific run unlocked an achievement (via the `run_id` link on `user_achievements`).
+
+---
+
+## 6. RunTracker integration
+
+After a successful run insert, query `user_achievements` for rows with the new `run_id` and fire celebratory `sonner` toasts ("🏆 You earned **First 10-Miler**"). Also re-fetch `user_stats` and show a brief "+3.2 mi · streak: 8 days" delta toast.
+
+---
+
+## 7. Leaderboards integration
+
+- Add 🥇🥈🥉 indicator next to the top-3 ranks for each period.
+- Add a "Champions" tab that reads from `medals` to show historical winners (this week last year, all-time monthly winners, etc.).
+
+---
+
+## 8. New components
+
+- `TrophyCard`, `MedalCard`, `ChallengeCard`, `ChallengeProgressBar`
+- `StatsTile`, `ActivityHeatmap`, `PeriodBarChart`, `PersonalBestsTable`
+- `TrophyShelf` (feed rail), `AchievementAnnouncementCard` (feed item)
+- `CreateChallengeDialog`
+
+---
+
+## File summary
+
+**New**
+- `supabase/migrations/<ts>_trophies_stats.sql`
+- `src/routes/trophies.tsx`
+- `src/routes/challenges.tsx`
+- `src/routes/stats.tsx`
+- `src/components/trophies/*` (cards, shelf, dialog)
+- `src/components/stats/*` (tiles, heatmap, charts)
+- `src/lib/stats.ts` (period helpers, PB derivation)
+
+**Modified**
+- `src/routes/profile.tsx` — stats strip + trophy preview
+- `src/routes/feed.tsx` — trophy shelf + announcement cards + run-card badges
+- `src/routes/leaderboards.tsx` — medal indicators + Champions tab
+- `src/components/AppShell.tsx` — add Trophies & Stats nav entries
+- `src/components/RunTracker.tsx` — post-run achievement toasts
+
+All achievement/medal/stat writes happen server-side via triggers and cron, so the UI is purely read-only for these tables — no way for a client to fabricate trophies.

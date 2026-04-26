@@ -2,9 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { formatClanTag, formatDistance, formatDuration, formatPace } from "@/lib/format";
-import { Activity, MapPin } from "lucide-react";
+import { Activity, MapPin, Trophy, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { iconFor, TIER_RING, type AchievementTier } from "@/lib/trophy";
 
 type Run = {
   id: string;
@@ -29,10 +31,17 @@ export const Route = createFileRoute("/feed")({
 });
 
 function FeedPage() {
+  const { user } = useAuth();
   const [runs, setRuns] = useState<Run[]>([]);
   const [routes, setRoutes] = useState<Record<string, string>>({});
   const [profiles, setProfiles] = useState<Record<string, { name: string; tag: string | null }>>({});
   const [loading, setLoading] = useState(true);
+  const [shelfTrophies, setShelfTrophies] = useState<
+    Array<{ title: string; tier: AchievementTier; icon: string }>
+  >([]);
+  const [shelfChallenges, setShelfChallenges] = useState<
+    Array<{ id: string; title: string; progress: number; target: number; ends_at: string }>
+  >([]);
 
   useEffect(() => {
     (async () => {
@@ -68,9 +77,57 @@ function FeedPage() {
       );
       setProfiles(pmap);
 
+      // Trophy shelf
+      if (user) {
+        const [tRes, defsRes, progRes] = await Promise.all([
+          supabase
+            .from("user_achievements")
+            .select("achievement_code, earned_at")
+            .eq("user_id", user.id)
+            .order("earned_at", { ascending: false })
+            .limit(5),
+          supabase.from("achievement_definitions").select("code, title, tier, icon"),
+          supabase
+            .from("user_challenge_progress")
+            .select("challenge_id, progress_value, completed_at")
+            .eq("user_id", user.id)
+            .is("completed_at", null),
+        ]);
+        const defs: Record<string, { title: string; tier: AchievementTier; icon: string }> = {};
+        ((defsRes.data as Array<{ code: string; title: string; tier: AchievementTier; icon: string }> | null) ?? []).forEach(
+          (d) => (defs[d.code] = d),
+        );
+        const trophies = ((tRes.data as Array<{ achievement_code: string }> | null) ?? [])
+          .map((r) => defs[r.achievement_code])
+          .filter((x): x is { title: string; tier: AchievementTier; icon: string } => !!x);
+        setShelfTrophies(trophies);
+
+        const progRows = (progRes.data as Array<{ challenge_id: string; progress_value: number }> | null) ?? [];
+        if (progRows.length) {
+          const cIds = progRows.map((r) => r.challenge_id);
+          const { data: chData } = await supabase
+            .from("challenges")
+            .select("id, title, target_value, ends_at")
+            .in("id", cIds)
+            .gt("ends_at", new Date().toISOString());
+          const chRows = (chData as Array<{ id: string; title: string; target_value: number; ends_at: string }> | null) ?? [];
+          const merged = chRows.map((c) => {
+            const p = progRows.find((x) => x.challenge_id === c.id);
+            return {
+              id: c.id,
+              title: c.title,
+              progress: Number(p?.progress_value ?? 0),
+              target: Number(c.target_value),
+              ends_at: c.ends_at,
+            };
+          });
+          setShelfChallenges(merged);
+        }
+      }
+
       setLoading(false);
     })();
-  }, []);
+  }, [user]);
 
   return (
     <AppShell>
@@ -78,6 +135,56 @@ function FeedPage() {
         <p className="eyebrow text-primary">The feed</p>
         <h1 className="font-display text-4xl font-black tracking-tight">Latest runs</h1>
       </div>
+
+      {/* Trophy + challenge shelf */}
+      {!loading && (shelfTrophies.length > 0 || shelfChallenges.length > 0) && (
+        <div className="mb-6 -mx-4 overflow-x-auto px-4">
+          <div className="flex gap-2">
+            {shelfChallenges.map((c) => {
+              const pct = Math.min(100, Math.round((c.progress / c.target) * 100));
+              return (
+                <Link
+                  key={c.id}
+                  to="/challenges"
+                  className="flex w-44 shrink-0 flex-col gap-1.5 rounded-xl border border-primary/30 bg-primary/5 p-3 hover:border-primary/60"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Target className="h-3.5 w-3.5 text-primary" />
+                    <p className="font-mono-num text-[10px] uppercase tracking-wider text-primary">CHALLENGE</p>
+                  </div>
+                  <p className="truncate text-sm font-bold">{c.title}</p>
+                  <div className="h-1.5 overflow-hidden rounded bg-surface">
+                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="font-mono-num text-[10px] text-muted-foreground">{pct}% COMPLETE</p>
+                </Link>
+              );
+            })}
+            {shelfTrophies.map((t, i) => {
+              const Icon = iconFor(t.icon);
+              return (
+                <Link
+                  key={i}
+                  to="/trophies"
+                  className="flex w-32 shrink-0 flex-col items-center gap-1.5 rounded-xl border border-border bg-card p-3 text-center hover:border-primary/40"
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ring-2 ${TIER_RING[t.tier]}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="line-clamp-2 text-[11px] font-medium leading-tight">{t.title}</p>
+                </Link>
+              );
+            })}
+            <Link
+              to="/trophies"
+              className="flex w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-surface/30 p-3 text-center hover:border-primary/40"
+            >
+              <Trophy className="h-5 w-5 text-muted-foreground" />
+              <p className="text-[11px] text-muted-foreground">View all</p>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="font-mono-num text-sm text-muted-foreground">LOADING…</div>
