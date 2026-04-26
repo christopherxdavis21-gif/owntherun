@@ -258,7 +258,7 @@ async function fetchSearchboxBusinessResults(
     .slice(0, limit);
 
   const details = await Promise.all(
-    suggestions.map(async (suggestion) => {
+    suggestions.map(async (suggestion): Promise<GeocodeResult | null> => {
       const retrieveParams = new URLSearchParams({
         access_token: token,
         session_token: sessionToken,
@@ -291,7 +291,7 @@ async function fetchSearchboxBusinessResults(
           category: (props?.poi_category ?? suggestion.poi_category ?? []).join(", ") || null,
           is_poi: true,
           distance_meters: Math.round(suggestion.distance ?? haversineMeters(proximity, center)),
-        } satisfies GeocodeResult;
+        };
       } catch {
         return null;
       }
