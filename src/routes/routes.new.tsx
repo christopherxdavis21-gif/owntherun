@@ -119,7 +119,7 @@ function NewRoutePage() {
         <p className="eyebrow text-primary">Build a route</p>
         <h1 className="font-display text-4xl font-black tracking-tight">Drop pins. Make a path.</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Tap the map to add waypoints. We'll connect them in order.
+          Tap the map to add waypoints. We'll snap them to roads and connect them along streets.
         </p>
       </div>
 
@@ -127,6 +127,7 @@ function NewRoutePage() {
         <div className="space-y-3">
           <RouteMap
             coordinates={coords}
+            pathCoordinates={snapped}
             onChange={setCoords}
             editable
             initialCenter={center}
@@ -140,6 +141,11 @@ function NewRoutePage() {
               <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Clear
             </Button>
             <div className="ml-auto flex items-center gap-4 text-sm">
+              {snapping && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> snapping…
+                </div>
+              )}
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="h-4 w-4" /> <span className="font-mono-num">{coords.length}</span> pts
               </div>
