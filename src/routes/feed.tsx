@@ -2,9 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { formatClanTag, formatDistance, formatDuration, formatPace } from "@/lib/format";
-import { Activity, MapPin } from "lucide-react";
+import { Activity, MapPin, Trophy, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { iconFor, TIER_RING, type AchievementTier } from "@/lib/trophy";
 
 type Run = {
   id: string;
