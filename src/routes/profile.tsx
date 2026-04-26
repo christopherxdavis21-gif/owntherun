@@ -102,6 +102,43 @@ function ProfilePage() {
           .in("id", ids);
         setGroups((gs as GroupOption[] | null) ?? []);
       }
+
+      // Stats summary
+      const [statsRes, medalsRes, recentRes, defsRes] = await Promise.all([
+        supabase
+          .from("user_stats")
+          .select("lifetime_meters, lifetime_runs, current_streak_days")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase.from("medals").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase
+          .from("user_achievements")
+          .select("achievement_code, earned_at")
+          .eq("user_id", user.id)
+          .order("earned_at", { ascending: false })
+          .limit(6),
+        supabase
+          .from("achievement_definitions")
+          .select("code, title, description, tier, icon"),
+      ]);
+      const st = statsRes.data as { lifetime_meters: number; lifetime_runs: number; current_streak_days: number } | null;
+      setSummary({
+        miles: st ? Number(st.lifetime_meters) / 1609.344 : 0,
+        runs: st?.lifetime_runs ?? 0,
+        streak: st?.current_streak_days ?? 0,
+        medals: medalsRes.count ?? 0,
+      });
+      const defMap: Record<string, { title: string; description: string; tier: AchievementTier; icon: string }> = {};
+      ((defsRes.data as Array<{ code: string; title: string; description: string; tier: AchievementTier; icon: string }> | null) ?? []).forEach(
+        (d) => (defMap[d.code] = d),
+      );
+      const recent = ((recentRes.data as Array<{ achievement_code: string; earned_at: string }> | null) ?? [])
+        .map((r) => {
+          const d = defMap[r.achievement_code];
+          return d ? { code: r.achievement_code, ...d, earned_at: r.earned_at } : null;
+        })
+        .filter((x): x is NonNullable<typeof x> => !!x);
+      setRecentTrophies(recent);
       setLoading(false);
     })();
   }, [user]);
