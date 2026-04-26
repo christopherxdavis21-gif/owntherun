@@ -1,38 +1,34 @@
+## Publishing your app
 
-## Goal
-When you type a business name like "Starbucks", "Target", or "Galleria Mall", the search should return **multiple matching locations near you** in a clear, easy-to-tap list — not just street addresses.
+To get your app live for testing, you'll publish it directly from the Lovable editor — this is a one-click action you control, not something I run for you.
 
-## Why it isn't working today
-Looking at `src/lib/mapbox.functions.ts` and the result list in `MapHub.tsx`:
+### How to publish
 
-1. **Mapbox is collapsing duplicate POIs.** A query like "Starbucks" with the current types list often returns just 1–2 POI features because the Geocoding v5 `/mapbox.places` endpoint deduplicates by name and prefers nearby addresses. We need to explicitly request more POIs and use the right query strategy.
-2. **The result list is hard to scan on mobile.** `max-h-64` only shows ~3–4 results on a 514px-wide preview, the business name and address share one tight row, and there's no clear visual difference between a business and a street address.
-3. **No "search this area" fallback.** If there are no Starbucks within the proximity bias radius, the search returns nothing instead of widening the search.
+**Desktop:** Click the **Publish** button in the top-right of the editor → click **Publish** (or **Update** if you've published before).
 
-## Proposed changes
+**Mobile:** Tap the **…** button in the bottom-right of the Preview screen → **Publish**.
 
-### 1. `src/lib/mapbox.functions.ts` — smarter geocoding
-- **Two-pass search for business names:** When the query looks like a business name (no leading number, not all digits), first call Mapbox with `types=poi` and `limit=10` to get businesses, then a second call with `types=address,place` to get addresses, and merge.
-- **Add `worldview=us` and `language` params** so chain stores return all branches, not just the corporate HQ.
-- **Stop forcing `types=poi.landmark`** — that filter actually excludes most retail/restaurant POIs. Use the broader `poi` type alone for businesses.
-- **Widen proximity gracefully:** if the POI pass returns fewer than 3 results within ~25 km of the user, do one more call without proximity to surface farther-away matches (still sorted by distance).
-- Keep returning the existing `GeocodeResult[]` shape so the UI doesn't need a data-model change.
+This will give you a live URL like `your-project.lovable.app` that you can open on any device (phone, tablet, desktop) to test the app — including the GPS tracking, route creation, map views, and email verification flow you've built.
 
-### 2. `src/components/MapHub.tsx` — scannable result list
-- **Taller dropdown:** change `max-h-64` to `max-h-[60vh]` so 8–10 results are visible on mobile without awkward scrolling inside a tiny box.
-- **Two-line result rows** with clear hierarchy:
-  - Line 1: business/place **name** (bold) + distance chip on the right
-  - Line 2: category (e.g. "Coffee shop") + full address, muted
-- **Distinct icon per result type:** `Building2` for POIs/businesses, `MapPin` for street addresses, `Landmark` for places/regions — so multiple Starbucks visually read as a list of businesses.
-- **"Showing X results for 'starbucks'" header** above the list when there are 2+ POI matches, so it's obvious you can pick one.
-- Empty-state message ("No matches near you — try a broader term") when results are empty after a search completes.
+### What I'll do to support testing
 
-### 3. No database, route, or auth changes
-This is a pure search-quality + UI fix. No migrations, no new dependencies.
+Once you've clicked Publish, here are a couple of things I can help verify or adjust if needed:
 
-## Files touched
-- `src/lib/mapbox.functions.ts` — update `geocodePlace` (two-pass, broader types, proximity fallback)
-- `src/components/MapHub.tsx` — taller dropdown, richer 2-line rows, type-specific icons, results header
+1. **Confirm publish visibility is public** — so your testers don't hit a login wall. I can check this with the publish settings tool and flip it to public if it's currently private.
+2. **Check the 'Edit with Lovable' badge** — let me know if you want it hidden on the published site (requires a paid plan).
+3. **Verify auth redirect URLs** — the email verification links need to point to your published domain, not the preview domain. After you publish, I'll confirm the Site URL and redirect allow-list in your backend auth settings include the new `.lovable.app` URL so verification emails work correctly for testers.
 
-## How you'll verify it
-After the change, typing "Starbucks" in your area should show a list of nearby Starbucks locations (each with its address and distance), and you can tap any one to plan a route to it. Same for "Target", "Galleria", "Walmart", etc.
+### Things to know before testing
+
+- **Frontend changes** you make later require clicking **Update** in the publish dialog to push them live.
+- **Backend changes** (database, edge functions) deploy automatically — no extra step.
+- **Geolocation and notifications** require HTTPS, which the published `.lovable.app` URL provides automatically.
+
+### After you approve
+
+Once approved, I'll:
+1. Check current publish visibility and confirm it's set to public.
+2. After you've clicked Publish, verify the auth redirect URLs include the live domain so email verification works for testers.
+3. Flag anything else that might trip up testers (e.g., location permission prompts on iOS Safari).
+
+Click **Publish** in the editor when you're ready, and approve this plan so I can run the verification steps.
