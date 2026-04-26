@@ -82,8 +82,6 @@ function ProfilePage() {
         setClanGroupId(p.clan_group_id ?? "");
         setGender(p.gender ?? "undisclosed");
         setBirthdate(p.birthdate ?? "");
-        setPhoneNumber(p.phone_number ?? "");
-        setPhoneVerified(!!p.phone_verified);
         setEmailVerified(!!p.email_verified);
         setIsVerified(!!p.is_verified);
       }
