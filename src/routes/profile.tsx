@@ -256,7 +256,7 @@ function ProfilePage() {
             </p>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Verify your email and phone to submit runs to public leaderboards. Private runs
+            Verify your email to submit runs to public leaderboards. Private runs
             don't need verification.
           </p>
 
@@ -272,44 +272,6 @@ function ProfilePage() {
                 <Button size="sm" variant="outline" onClick={resendEmailVerification}>
                   Resend
                 </Button>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-border bg-card p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Phone</span>
-                {phoneVerified && (
-                  <span className="font-mono-num ml-auto text-xs font-bold text-primary">VERIFIED</span>
-                )}
-              </div>
-              {!phoneVerified && (
-                <>
-                  <Input
-                    type="tel"
-                    placeholder="+15551234567"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    disabled={otpSent}
-                  />
-                  {!otpSent ? (
-                    <Button size="sm" onClick={sendPhoneOtp} disabled={otpBusy} className="w-full">
-                      {otpBusy ? "Sending…" : "Send code"}
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="6-digit code"
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value)}
-                        className="font-mono-num"
-                      />
-                      <Button onClick={confirmPhoneOtp} disabled={otpBusy}>
-                        {otpBusy ? "…" : "Confirm"}
-                      </Button>
-                    </div>
-                  )}
-                </>
               )}
             </div>
           </div>
