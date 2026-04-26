@@ -169,22 +169,30 @@ export const geocodePlace = createServerFn({ method: "POST" })
     if (data.proximity) {
       params.set("proximity", `${data.proximity[0]},${data.proximity[1]}`);
     }
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox/places/${encodeURIComponent(data.query)}.json?${params}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Mapbox geocoding error: ${res.status}`);
-    const json = (await res.json()) as {
-      features?: Array<{
-        id: string;
-        text: string;
-        place_name: string;
-        center: Coord;
-      }>;
-    };
-    const results: GeocodeResult[] = (json.features ?? []).map((f) => ({
-      id: f.id,
-      name: f.text,
-      place: f.place_name,
-      center: f.center,
-    }));
-    return { results };
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(data.query)}.json?${params}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        console.error(`Mapbox geocoding error: ${res.status} ${res.statusText}`);
+        return { results: [] as GeocodeResult[], error: `Search unavailable (${res.status})` };
+      }
+      const json = (await res.json()) as {
+        features?: Array<{
+          id: string;
+          text: string;
+          place_name: string;
+          center: Coord;
+        }>;
+      };
+      const results: GeocodeResult[] = (json.features ?? []).map((f) => ({
+        id: f.id,
+        name: f.text,
+        place: f.place_name,
+        center: f.center,
+      }));
+      return { results, error: null as string | null };
+    } catch (err) {
+      console.error("Mapbox geocoding request failed:", err);
+      return { results: [] as GeocodeResult[], error: "Search service unavailable" };
+    }
   });
