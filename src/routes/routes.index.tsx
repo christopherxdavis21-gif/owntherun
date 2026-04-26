@@ -24,6 +24,9 @@ export const Route = createFileRoute("/routes/")({
 function RunHubPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Coord | undefined>(undefined);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unavailable">(
+    "idle",
+  );
   const [nearby, setNearby] = useState<NearbyRoute[]>([]);
   const [saved, setSaved] = useState<NearbyRoute[]>([]);
   const [mine, setMine] = useState<NearbyRoute[]>([]);
@@ -35,13 +38,26 @@ function RunHubPage() {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+  const requestLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationStatus("unavailable");
+      return;
+    }
+    setLocationStatus("requesting");
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLocation([pos.coords.longitude, pos.coords.latitude]),
-      () => {},
-      { timeout: 5000 },
+      (pos) => {
+        setUserLocation([pos.coords.longitude, pos.coords.latitude]);
+        setLocationStatus("granted");
+      },
+      (err) => {
+        setLocationStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
+      },
+      { timeout: 10000, enableHighAccuracy: true, maximumAge: 60000 },
     );
+  };
+
+  useEffect(() => {
+    requestLocation();
   }, []);
 
   useEffect(() => {
