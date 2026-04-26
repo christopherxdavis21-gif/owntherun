@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,8 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { formatClanTag } from "@/lib/format";
-import { ShieldCheck, ShieldAlert, Mail, Phone } from "lucide-react";
+import { formatClanTag, formatDuration, metersToMiles } from "@/lib/format";
+import { ShieldCheck, ShieldAlert, Mail, Phone, Trophy, Flame, Activity, Route as RouteIcon } from "lucide-react";
+import { TrophyCard } from "@/components/trophies/TrophyCard";
+import type { AchievementTier } from "@/lib/trophy";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — Catch Up" }] }),
