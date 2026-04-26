@@ -121,18 +121,35 @@ function RunHubPage() {
 
       {/* Location status banner */}
       {locationStatus !== "granted" && (
-        <div className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-primary/40 bg-primary/10 p-3 text-xs">
-          <div>
-            <span className="font-semibold text-primary">Location off.</span>{" "}
-            <span className="text-muted-foreground">
-              {locationStatus === "denied"
-                ? "We can't show or search places near you. Allow location access in your browser, then retry."
-                : locationStatus === "unavailable"
-                  ? "Your device couldn't share a location. Search results will not be local."
-                  : "Searches won't be biased to your area until you share your location."}
-            </span>
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl border-2 border-primary/50 bg-primary/10 p-4 shadow-glow sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20">
+              <MapPin className="h-5 w-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-display text-sm font-bold text-foreground">
+                {locationStatus === "denied"
+                  ? "Location blocked"
+                  : locationStatus === "unavailable"
+                    ? "Location unavailable"
+                    : "Turn on location for nearby results"}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {locationStatus === "denied"
+                  ? "Allow location in your browser's site settings, then tap below to retry."
+                  : locationStatus === "unavailable"
+                    ? "Your device couldn't share a location. Search results won't be local."
+                    : "Search and routes near you only work when you share your location."}
+              </p>
+            </div>
           </div>
-          <Button size="sm" variant="outline" onClick={requestLocation} className="shrink-0">
+          <Button
+            size="sm"
+            onClick={requestLocation}
+            disabled={locationStatus === "requesting"}
+            className="w-full shrink-0 gap-1.5 sm:w-auto"
+          >
+            <MapPin className="h-4 w-4" />
             {locationStatus === "requesting" ? "Locating…" : "Use my location"}
           </Button>
         </div>
