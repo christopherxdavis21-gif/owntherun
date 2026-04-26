@@ -26,6 +26,8 @@ type GroupRow = {
   invite_code: string;
   is_public: boolean;
   created_by: string;
+  image_url: string | null;
+  clan_tag: string | null;
   member_count: number;
   is_member: boolean;
 };
@@ -58,7 +60,7 @@ function GroupsIndexPage() {
     setLoading(true);
     const { data: groupsData } = await supabase
       .from("groups")
-      .select("id, name, description, invite_code, is_public, created_by")
+      .select("id, name, description, invite_code, is_public, created_by, image_url, clan_tag")
       .order("created_at", { ascending: false });
 
     const list = (groupsData ?? []) as Array<Omit<GroupRow, "member_count" | "is_member">>;
@@ -311,12 +313,21 @@ function GroupsIndexPage() {
 
 function GroupCard({ group, onJoin }: { group: GroupRow; onJoin?: () => void }) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <Users className="h-5 w-5" />
+    <div className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40">
+      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-primary/10">
+        {group.image_url ? (
+          <img src={group.image_url} alt={group.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-primary">
+            <Users className="h-6 w-6" />
+          </div>
+        )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="font-display truncate text-base font-bold leading-tight">{group.name}</div>
+        <div className="font-display truncate text-base font-bold leading-tight">
+          {group.clan_tag && <span className="text-primary">[{group.clan_tag}] </span>}
+          {group.name}
+        </div>
         <div className="truncate text-xs text-muted-foreground">
           {group.member_count} {group.member_count === 1 ? "member" : "members"}
           {!group.is_public && " · private"}

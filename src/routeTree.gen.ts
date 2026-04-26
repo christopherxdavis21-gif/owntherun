@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -19,6 +20,11 @@ import { Route as RoutesNewRouteImport } from './routes/routes.new'
 import { Route as RoutesRouteIdRouteImport } from './routes/routes.$routeId'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
 
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeaderboardsRoute = LeaderboardsRouteImport.update({
   id: '/leaderboards',
   path: '/leaderboards',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/profile': typeof ProfileRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/profile': typeof ProfileRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/feed': typeof FeedRoute
   '/leaderboards': typeof LeaderboardsRoute
+  '/profile': typeof ProfileRoute
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/feed'
     | '/leaderboards'
+    | '/profile'
     | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/feed'
     | '/leaderboards'
+    | '/profile'
     | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/feed'
     | '/leaderboards'
+    | '/profile'
     | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   FeedRoute: typeof FeedRoute
   LeaderboardsRoute: typeof LeaderboardsRoute
+  ProfileRoute: typeof ProfileRoute
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   RoutesRouteIdRoute: typeof RoutesRouteIdRoute
   RoutesNewRoute: typeof RoutesNewRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leaderboards': {
       id: '/leaderboards'
       path: '/leaderboards'
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   FeedRoute: FeedRoute,
   LeaderboardsRoute: LeaderboardsRoute,
+  ProfileRoute: ProfileRoute,
   GroupsGroupIdRoute: GroupsGroupIdRoute,
   RoutesRouteIdRoute: RoutesRouteIdRoute,
   RoutesNewRoute: RoutesNewRoute,

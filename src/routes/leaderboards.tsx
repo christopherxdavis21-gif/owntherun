@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistance, formatDuration } from "@/lib/format";
+import { formatClanTag, formatDistance, formatDuration } from "@/lib/format";
 import { Trophy, ArrowRight } from "lucide-react";
 
 type RouteWithBest = {
@@ -11,6 +11,7 @@ type RouteWithBest = {
   distance_meters: number;
   best_time: number | null;
   best_user: string | null;
+  best_user_tag: string | null;
   run_count: number;
 };
 
@@ -56,17 +57,17 @@ function LeaderboardsPage() {
 
       const userIds = Array.from(new Set(runs.map((r) => r.user_id)));
       const { data: profs } = userIds.length
-        ? await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+        ? await supabase.from("profiles").select("user_id, display_name, clan_tag").in("user_id", userIds)
         : { data: [] };
-      const profMap: Record<string, string> = {};
-      ((profs as Array<{ user_id: string; display_name: string }> | null) ?? []).forEach(
-        (p) => (profMap[p.user_id] = p.display_name),
+      const profMap: Record<string, { name: string; tag: string | null }> = {};
+      ((profs as Array<{ user_id: string; display_name: string; clan_tag: string | null }> | null) ?? []).forEach(
+        (p) => (profMap[p.user_id] = { name: p.display_name, tag: p.clan_tag }),
       );
 
       const grouped = routesList.map((r): RouteWithBest => {
         const myRuns = runs.filter((x) => x.route_id === r.id);
         if (myRuns.length === 0) {
-          return { ...r, best_time: null, best_user: null, run_count: 0 };
+          return { ...r, best_time: null, best_user: null, best_user_tag: null, run_count: 0 };
         }
         const best = myRuns.reduce((a, b) =>
           a.duration_seconds < b.duration_seconds ? a : b,
@@ -74,7 +75,8 @@ function LeaderboardsPage() {
         return {
           ...r,
           best_time: best.duration_seconds,
-          best_user: profMap[best.user_id] ?? "Runner",
+          best_user: profMap[best.user_id]?.name ?? "Runner",
+          best_user_tag: profMap[best.user_id]?.tag ?? null,
           run_count: myRuns.length,
         };
       });
@@ -136,7 +138,9 @@ function LeaderboardsPage() {
                       {formatDuration(b.best_time)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      held by {b.best_user}
+                      held by {b.best_user_tag && (
+                        <span className="font-mono-num text-primary">{formatClanTag(b.best_user_tag)}</span>
+                      )}{b.best_user}
                     </div>
                   </>
                 ) : (

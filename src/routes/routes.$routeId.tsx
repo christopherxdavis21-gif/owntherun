@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  formatClanTag,
   formatDistance,
   formatDuration,
   formatPace,
   parseDuration,
 } from "@/lib/format";
 import { toast } from "sonner";
-import { Trash2, Trophy, Lock, Globe, ArrowLeft, Crown } from "lucide-react";
+import { Trash2, Trophy, Lock, Globe, ArrowLeft, Crown, Bookmark, Share2 } from "lucide-react";
 
 type Coord = [number, number];
 type RouteRow = {
@@ -34,7 +35,7 @@ type RunRow = {
   notes: string | null;
   ran_at: string;
 };
-type Profile = { user_id: string; display_name: string };
+type Profile = { user_id: string; display_name: string; clan_tag: string | null };
 
 export const Route = createFileRoute("/routes/$routeId")({
   head: () => ({
@@ -51,9 +52,10 @@ function RouteDetailPage() {
   const navigate = useNavigate();
   const [route, setRoute] = useState<RouteRow | null>(null);
   const [runs, setRuns] = useState<RunRow[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<Record<string, { name: string; tag: string | null }>>({});
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
 
   // Run-log form
   const [duration, setDuration] = useState("");
@@ -66,7 +68,8 @@ function RouteDetailPage() {
       supabase.from("routes").select("*").eq("id", routeId).maybeSingle(),
       supabase.auth.getUser(),
     ]);
-    setUserId(u.user?.id ?? null);
+    const uid = u.user?.id ?? null;
+    setUserId(uid);
     setRoute((r as unknown as RouteRow) ?? null);
 
     if (r) {
@@ -82,11 +85,23 @@ function RouteDetailPage() {
       if (userIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("user_id, display_name")
+          .select("user_id, display_name, clan_tag")
           .in("user_id", userIds);
-        const map: Record<string, string> = {};
-        (profs as Profile[] | null)?.forEach((p) => (map[p.user_id] = p.display_name));
+        const map: Record<string, { name: string; tag: string | null }> = {};
+        (profs as Profile[] | null)?.forEach(
+          (p) => (map[p.user_id] = { name: p.display_name, tag: p.clan_tag }),
+        );
         setProfiles(map);
+      }
+
+      if (uid) {
+        const { data: savedRow } = await supabase
+          .from("saved_routes")
+          .select("id")
+          .eq("user_id", uid)
+          .eq("route_id", routeId)
+          .maybeSingle();
+        setSaved(!!savedRow);
       }
     }
     setLoading(false);
@@ -130,6 +145,42 @@ function RouteDetailPage() {
     if (error) return toast.error(error.message);
     toast.success("Route deleted");
     navigate({ to: "/routes" });
+  };
+
+  const toggleSave = async () => {
+    if (!route || !userId) return;
+    if (saved) {
+      const { error } = await supabase
+        .from("saved_routes")
+        .delete()
+        .eq("user_id", userId)
+        .eq("route_id", route.id);
+      if (error) return toast.error(error.message);
+      setSaved(false);
+      toast.success("Removed from saved");
+    } else {
+      const { error } = await supabase
+        .from("saved_routes")
+        .insert({ user_id: userId, route_id: route.id });
+      if (error) return toast.error(error.message);
+      setSaved(true);
+      toast.success("Saved to your library");
+    }
+  };
+
+  const shareRoute = async () => {
+    if (!route) return;
+    const url = `${window.location.origin}/routes/${route.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: route.name, text: `Run ${route.name} on Catch Up`, url });
+        return;
+      } catch {
+        // fall through to clipboard
+      }
+    }
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied");
   };
 
   if (loading) {
@@ -183,6 +234,20 @@ function RouteDetailPage() {
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
           </Button>
         )}
+        <div className="flex gap-2">
+          {!isOwner && route.is_public && (
+            <Button variant={saved ? "default" : "outline"} size="sm" onClick={toggleSave} className="gap-1">
+              <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-current" : ""}`} />
+              {saved ? "Saved" : "Save"}
+            </Button>
+          )}
+          {route.is_public && (
+            <Button variant="outline" size="sm" onClick={shareRoute} className="gap-1">
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-3 gap-3">
@@ -222,7 +287,12 @@ function RouteDetailPage() {
                       </span>
                       <div className="min-w-0">
                         <div className="truncate font-medium">
-                          {profiles[r.user_id] ?? "Runner"}
+                          {profiles[r.user_id]?.tag && (
+                            <span className="font-mono-num text-primary">
+                              {formatClanTag(profiles[r.user_id]?.tag)}
+                            </span>
+                          )}
+                          {profiles[r.user_id]?.name ?? "Runner"}
                           {r.user_id === userId && (
                             <span className="ml-1.5 text-xs text-primary">you</span>
                           )}
