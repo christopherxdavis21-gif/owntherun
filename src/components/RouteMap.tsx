@@ -69,7 +69,10 @@ export function RouteMap({
         data: {
           type: "Feature",
           properties: {},
-          geometry: { type: "LineString", coordinates: coordsRef.current },
+          geometry: {
+            type: "LineString",
+            coordinates: pathRef.current ?? coordsRef.current,
+          },
         },
       });
       map.addLayer({
