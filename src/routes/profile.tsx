@@ -73,6 +73,29 @@ function ProfilePage() {
     Array<{ code: string; title: string; description: string; tier: AchievementTier; icon: string; earned_at: string }>
   >([]);
 
+  // Account deletion
+  const deleteAccountFn = useServerFn(deleteOwnAccount);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== "DELETE") {
+      toast.error('Type DELETE to confirm');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await deleteAccountFn();
+      await supabase.auth.signOut();
+      toast.success("Your account has been deleted.");
+      navigate({ to: "/auth" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete account";
+      toast.error(message);
+      setDeleting(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!user) return;
