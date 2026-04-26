@@ -24,6 +24,8 @@ import {
   X,
   Bookmark,
   MapPin as MapPinIcon,
+  Building2,
+  Landmark,
 } from "lucide-react";
 
 type Coord = [number, number];
