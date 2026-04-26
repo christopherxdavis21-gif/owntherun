@@ -75,3 +75,60 @@ export const snapToRoads = createServerFn({ method: "POST" })
 
     return { coordinates: stitched, distance_meters: Math.round(totalDistance) };
   });
+
+/**
+ * Compute elevation gain (meters) along a polyline by sampling Mapbox
+ * Terrain-RGB tiles via the Tilequery API. Samples at most 64 points to keep
+ * request volume reasonable.
+ */
+export const computeElevationGain = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const data = input as { coordinates?: Coord[] };
+    if (!data?.coordinates || !Array.isArray(data.coordinates)) {
+      throw new Error("coordinates required");
+    }
+    return { coordinates: data.coordinates as Coord[] };
+  })
+  .handler(async ({ data }) => {
+    const token = process.env.MAPBOX_PUBLIC_TOKEN;
+    if (!token) throw new Error("Mapbox token not configured");
+    const { coordinates } = data;
+    if (coordinates.length < 2) return { elevation_gain_meters: 0 };
+
+    // Down-sample to <= 64 points
+    const MAX_SAMPLES = 64;
+    const step = Math.max(1, Math.floor(coordinates.length / MAX_SAMPLES));
+    const samples: Coord[] = [];
+    for (let i = 0; i < coordinates.length; i += step) samples.push(coordinates[i]);
+    if (samples[samples.length - 1] !== coordinates[coordinates.length - 1]) {
+      samples.push(coordinates[coordinates.length - 1]);
+    }
+
+    const elevations: number[] = [];
+    for (const [lng, lat] of samples) {
+      const url =
+        `https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${lng},${lat}.json` +
+        `?layers=contour&limit=1&access_token=${token}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          elevations.push(elevations[elevations.length - 1] ?? 0);
+          continue;
+        }
+        const json = (await res.json()) as {
+          features?: Array<{ properties?: { ele?: number } }>;
+        };
+        const ele = json.features?.[0]?.properties?.ele ?? elevations[elevations.length - 1] ?? 0;
+        elevations.push(ele);
+      } catch {
+        elevations.push(elevations[elevations.length - 1] ?? 0);
+      }
+    }
+
+    let gain = 0;
+    for (let i = 1; i < elevations.length; i++) {
+      const d = elevations[i] - elevations[i - 1];
+      if (d > 0) gain += d;
+    }
+    return { elevation_gain_meters: Math.round(gain) };
+  });

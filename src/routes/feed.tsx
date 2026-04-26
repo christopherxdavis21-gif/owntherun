@@ -39,6 +39,7 @@ function FeedPage() {
       const { data } = await supabase
         .from("runs")
         .select("id, user_id, route_id, duration_seconds, distance_meters, ran_at, notes")
+        .in("visibility", ["public", "leaderboard"])
         .order("ran_at", { ascending: false })
         .limit(40);
       const rows = (data as Run[]) ?? [];
