@@ -27,7 +27,7 @@ export const Route = createFileRoute("/routes/")({
 });
 
 function RoutesIndex() {
-  const [tab, setTab] = useState<"mine" | "discover">("mine");
+  const [tab, setTab] = useState<"mine" | "discover" | "saved">("mine");
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -39,18 +39,37 @@ function RoutesIndex() {
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-    const query = supabase
-      .from("routes")
-      .select("id, name, description, distance_meters, is_public, user_id, created_at")
-      .order("created_at", { ascending: false });
-
-    const finalQuery =
-      tab === "mine" ? query.eq("user_id", userId) : query.eq("is_public", true);
-
-    finalQuery.then(({ data }) => {
+    (async () => {
+      if (tab === "saved") {
+        const { data: saves } = await supabase
+          .from("saved_routes")
+          .select("route_id, saved_at")
+          .eq("user_id", userId)
+          .order("saved_at", { ascending: false });
+        const ids = ((saves as Array<{ route_id: string }> | null) ?? []).map((s) => s.route_id);
+        if (ids.length === 0) {
+          setRoutes([]);
+          setLoading(false);
+          return;
+        }
+        const { data } = await supabase
+          .from("routes")
+          .select("id, name, description, distance_meters, is_public, user_id, created_at")
+          .in("id", ids);
+        setRoutes((data as RouteRow[]) ?? []);
+        setLoading(false);
+        return;
+      }
+      const query = supabase
+        .from("routes")
+        .select("id, name, description, distance_meters, is_public, user_id, created_at")
+        .order("created_at", { ascending: false });
+      const finalQuery =
+        tab === "mine" ? query.eq("user_id", userId) : query.eq("is_public", true);
+      const { data } = await finalQuery;
       setRoutes((data as RouteRow[]) ?? []);
       setLoading(false);
-    });
+    })();
   }, [tab, userId]);
 
   return (
@@ -68,7 +87,7 @@ function RoutesIndex() {
       </div>
 
       <div className="mb-5 flex gap-1 rounded-lg border border-border bg-surface/50 p-1 w-fit">
-        {(["mine", "discover"] as const).map((t) => (
+        {(["mine", "discover", "saved"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -76,7 +95,7 @@ function RoutesIndex() {
               tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {t === "mine" ? "My routes" : "Discover"}
+            {t === "mine" ? "My routes" : t === "discover" ? "Discover" : "Saved"}
           </button>
         ))}
       </div>
@@ -122,16 +141,22 @@ function RoutesIndex() {
   );
 }
 
-function EmptyState({ tab }: { tab: "mine" | "discover" }) {
+function EmptyState({ tab }: { tab: "mine" | "discover" | "saved" }) {
   return (
     <div className="rounded-2xl border border-dashed border-border bg-surface/30 p-12 text-center">
       <p className="font-display text-2xl font-bold">
-        {tab === "mine" ? "No routes yet" : "Nothing to discover yet"}
+        {tab === "mine"
+          ? "No routes yet"
+          : tab === "discover"
+            ? "Nothing to discover yet"
+            : "No saved routes"}
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
         {tab === "mine"
           ? "Map your first route in under a minute."
-          : "When other runners share routes, they'll show up here."}
+          : tab === "discover"
+            ? "When other runners share routes, they'll show up here."
+            : "Tap the bookmark on any route to save it here."}
       </p>
       {tab === "mine" && (
         <Link to="/routes/new" className="mt-5 inline-block">
