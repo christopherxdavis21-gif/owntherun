@@ -78,8 +78,43 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
       if (tickRef.current) clearInterval(tickRef.current);
+      releaseWakeLock();
     };
   }, []);
+
+  // Re-acquire wake lock when tab becomes visible again (browsers auto-release on hide)
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible" && (status === "running")) {
+        void requestWakeLock();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [status]);
+
+  async function requestWakeLock() {
+    try {
+      const navAny = navigator as Navigator & {
+        wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> };
+      };
+      if (navAny.wakeLock?.request) {
+        wakeLockRef.current = await navAny.wakeLock.request("screen");
+      }
+    } catch {
+      // Non-fatal — older browsers / iOS Safari versions just don't have it
+    }
+  }
+
+  function releaseWakeLock() {
+    try {
+      wakeLockRef.current?.release();
+    } catch {
+      /* ignore */
+    }
+    wakeLockRef.current = null;
+  }
+
 
   const startTimer = () => {
     startedAtRef.current = Date.now();
