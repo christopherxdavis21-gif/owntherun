@@ -2,177 +2,224 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RunTracker } from "@/components/RunTracker";
+import { MapHub, loadHubRoutes, type NearbyRoute } from "@/components/MapHub";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistance } from "@/lib/format";
-import { Plus, MapPin, Lock, Globe, Timer } from "lucide-react";
+import { formatDistance, formatDuration } from "@/lib/format";
+import { Plus, Trophy, Bookmark, Map as MapIcon, ChevronRight } from "lucide-react";
 
-type RouteRow = {
-  id: string;
-  name: string;
-  description: string | null;
-  distance_meters: number;
-  is_public: boolean;
-  user_id: string;
-  created_at: string;
-};
+type Coord = [number, number];
 
 export const Route = createFileRoute("/routes/")({
   head: () => ({
     meta: [
-      { title: "Routes — Catch Up" },
-      { name: "description", content: "Browse and manage your running routes." },
+      { title: "Run — Catch Up" },
+      { name: "description", content: "Start a run, follow community routes near you, or map a path to anywhere." },
     ],
   }),
-  component: RoutesIndex,
+  component: RunHubPage,
 });
 
-function RoutesIndex() {
-  const [tab, setTab] = useState<"mine" | "discover" | "saved" | "track">("mine");
-  const [routes, setRoutes] = useState<RouteRow[]>([]);
-  const [loading, setLoading] = useState(true);
+function RunHubPage() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Coord | undefined>(undefined);
+  const [nearby, setNearby] = useState<NearbyRoute[]>([]);
+  const [saved, setSaved] = useState<NearbyRoute[]>([]);
+  const [mine, setMine] = useState<NearbyRoute[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trackerOpen, setTrackerOpen] = useState(false);
+  const [plannedPath, setPlannedPath] = useState<Coord[] | undefined>(undefined);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
   useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserLocation([pos.coords.longitude, pos.coords.latitude]),
+      () => {},
+      { timeout: 5000 },
+    );
+  }, []);
+
+  useEffect(() => {
     if (!userId) return;
-    if (tab === "track") {
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
     setLoading(true);
-    (async () => {
-      if (tab === "saved") {
-        const { data: saves } = await supabase
-          .from("saved_routes")
-          .select("route_id, saved_at")
-          .eq("user_id", userId)
-          .order("saved_at", { ascending: false });
-        const ids = ((saves as Array<{ route_id: string }> | null) ?? []).map((s) => s.route_id);
-        if (ids.length === 0) {
-          setRoutes([]);
-          setLoading(false);
-          return;
-        }
-        const { data } = await supabase
-          .from("routes")
-          .select("id, name, description, distance_meters, is_public, user_id, created_at")
-          .in("id", ids);
-        setRoutes((data as RouteRow[]) ?? []);
-        setLoading(false);
-        return;
+    loadHubRoutes(userId, userLocation)
+      .then(({ nearby, saved, mine }) => {
+        if (cancelled) return;
+        setNearby(nearby);
+        setSaved(saved);
+        setMine(mine);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, userLocation]);
+
+  const openTracker = () => {
+    const stored = sessionStorage.getItem("catchup:plannedPath");
+    if (stored) {
+      try {
+        setPlannedPath(JSON.parse(stored) as Coord[]);
+      } catch {
+        setPlannedPath(undefined);
       }
-      const query = supabase
-        .from("routes")
-        .select("id, name, description, distance_meters, is_public, user_id, created_at")
-        .order("created_at", { ascending: false });
-      const finalQuery =
-        tab === "mine" ? query.eq("user_id", userId) : query.eq("is_public", true);
-      const { data } = await finalQuery;
-      setRoutes((data as RouteRow[]) ?? []);
-      setLoading(false);
-    })();
-  }, [tab, userId]);
+      sessionStorage.removeItem("catchup:plannedPath");
+    } else {
+      setPlannedPath(undefined);
+    }
+    setTrackerOpen(true);
+  };
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-5 flex items-end justify-between gap-3">
         <div>
-          <p className="eyebrow text-primary">Routes</p>
-          <h1 className="font-display text-4xl font-black tracking-tight">Your running library</h1>
+          <p className="eyebrow text-primary">Run</p>
+          <h1 className="font-display text-3xl font-black tracking-tight md:text-4xl">
+            Where to today?
+          </h1>
         </div>
         <Link to="/routes/new" className="hidden sm:block">
-          <Button>
-            <Plus className="mr-1.5 h-4 w-4" /> New route
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" /> New route
           </Button>
         </Link>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-1 rounded-lg border border-border bg-surface/50 p-1 w-fit">
-        {(["mine", "discover", "saved", "track"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-              tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t === "track" && <Timer className="h-3.5 w-3.5" />}
-            {t === "mine" ? "My routes" : t === "discover" ? "Discover" : t === "saved" ? "Saved" : "Track a run"}
-          </button>
-        ))}
+      {/* Map hub */}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-border">
+        <MapHub
+          userLocation={userLocation}
+          nearbyRoutes={[...mine, ...saved, ...nearby]}
+          onStartFreeRun={openTracker}
+        />
       </div>
 
-      {tab === "track" ? (
-        <RunTracker />
-      ) : loading ? (
+      {/* Web background-tracking notice */}
+      <div className="mb-6 rounded-xl border border-border bg-surface/40 p-3 text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">Heads up:</span> on the web, keep this tab in the foreground while running.
+        We'll keep your screen on during a run. Background tracking with the screen locked is available in the mobile app.
+      </div>
+
+      {/* Rails */}
+      {loading ? (
         <div className="font-mono-num text-sm text-muted-foreground">LOADING…</div>
-      ) : routes.length === 0 ? (
-        <EmptyState tab={tab} />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-8">
+          <Rail
+            title="Nearby community routes"
+            icon={<MapIcon className="h-4 w-4 text-primary" />}
+            routes={nearby}
+            empty="No public routes near you yet — be the first to map one."
+          />
+          <Rail
+            title="Saved routes"
+            icon={<Bookmark className="h-4 w-4 text-primary" />}
+            routes={saved}
+            empty="Bookmark routes you find on the map and they'll show up here."
+          />
+          <Rail
+            title="Your routes"
+            icon={<Plus className="h-4 w-4 text-primary" />}
+            routes={mine}
+            empty="You haven't built a route yet."
+            cta={
+              <Link to="/routes/new">
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  <Plus className="h-3.5 w-3.5" /> Create route
+                </Button>
+              </Link>
+            }
+          />
+        </div>
+      )}
+
+      {/* Run tracker dialog */}
+      <Dialog open={trackerOpen} onOpenChange={setTrackerOpen}>
+        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {plannedPath ? "Run with a planned path" : "Track a free run"}
+            </DialogTitle>
+          </DialogHeader>
+          <RunTracker plannedPath={plannedPath} />
+        </DialogContent>
+      </Dialog>
+    </AppShell>
+  );
+}
+
+function Rail({
+  title,
+  icon,
+  routes,
+  empty,
+  cta,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  routes: NearbyRoute[];
+  empty: string;
+  cta?: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-display flex items-center gap-2 text-lg font-bold">
+          {icon} {title}
+          <span className="font-mono-num ml-1 text-sm font-normal text-muted-foreground">
+            {routes.length}
+          </span>
+        </h2>
+        {cta}
+      </div>
+      {routes.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border bg-surface/30 p-5 text-sm text-muted-foreground">
+          {empty}
+        </p>
+      ) : (
+        <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
           {routes.map((r) => (
             <Link
               key={r.id}
               to="/routes/$routeId"
               params={{ routeId: r.id }}
-              className="group rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-glow"
+              className="group min-w-[240px] max-w-[260px] shrink-0 rounded-2xl border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-glow"
             >
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="font-display text-lg font-bold leading-tight group-hover:text-primary">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-display line-clamp-2 text-base font-bold leading-tight group-hover:text-primary">
                   {r.name}
                 </h3>
-                <span className="text-muted-foreground">
-                  {r.is_public ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                </span>
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" />
               </div>
-              {r.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.description}</p>
-              )}
-              <div className="mt-4 flex items-center justify-between text-sm">
-                <span className="font-mono-num text-primary text-base font-semibold">
+              <div className="mt-3 flex items-center justify-between">
+                <span className="font-mono-num text-base font-semibold text-primary">
                   {formatDistance(r.distance_meters)}
                 </span>
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Route
-                </span>
+                {r.best_time_seconds != null && (
+                  <span className="font-mono-num flex items-center gap-1 text-xs text-muted-foreground">
+                    <Trophy className="h-3 w-3 text-primary" />
+                    {formatDuration(r.best_time_seconds)}
+                  </span>
+                )}
               </div>
+              {r.best_runner_name && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  Best: {r.best_runner_name}
+                </p>
+              )}
             </Link>
           ))}
         </div>
       )}
-    </AppShell>
-  );
-}
-
-function EmptyState({ tab }: { tab: "mine" | "discover" | "saved" | "track" }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-border bg-surface/30 p-12 text-center">
-      <p className="font-display text-2xl font-bold">
-        {tab === "mine"
-          ? "No routes yet"
-          : tab === "discover"
-            ? "Nothing to discover yet"
-            : "No saved routes"}
-      </p>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {tab === "mine"
-          ? "Map your first route in under a minute."
-          : tab === "discover"
-            ? "When other runners share routes, they'll show up here."
-            : "Tap the bookmark on any route to save it here."}
-      </p>
-      {tab === "mine" && (
-        <Link to="/routes/new" className="mt-5 inline-block">
-          <Button>
-            <Plus className="mr-1.5 h-4 w-4" /> Create a route
-          </Button>
-        </Link>
-      )}
-    </div>
+    </section>
   );
 }
