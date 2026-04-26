@@ -173,46 +173,6 @@ function ProfilePage() {
     else toast.success("Verification email sent");
   }
 
-  async function sendPhoneOtp() {
-    if (!phoneNumber.trim()) return toast.error("Enter a phone number");
-    setOtpBusy(true);
-    // updateUser triggers SMS OTP for phone change
-    const { error } = await supabase.auth.updateUser({ phone: phoneNumber.trim() });
-    setOtpBusy(false);
-    if (error) {
-      toast.error(error.message + " (SMS provider must be configured in Cloud)");
-      return;
-    }
-    setOtpSent(true);
-    toast.success("Code sent — check your texts");
-  }
-
-  async function confirmPhoneOtp() {
-    if (!otpCode.trim() || !user) return;
-    setOtpBusy(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: phoneNumber.trim(),
-      token: otpCode.trim(),
-      type: "phone_change",
-    });
-    if (error) {
-      setOtpBusy(false);
-      toast.error(error.message);
-      return;
-    }
-    // mark verified in profile
-    const { error: pErr } = await supabase
-      .from("profiles")
-      .update({ phone_number: phoneNumber.trim(), phone_verified: true })
-      .eq("user_id", user.id);
-    setOtpBusy(false);
-    if (pErr) return toast.error(pErr.message);
-    setPhoneVerified(true);
-    setIsVerified(emailVerified && true);
-    setOtpSent(false);
-    setOtpCode("");
-    toast.success("Phone verified! You're ready to compete.");
-  }
 
   if (loading) {
     return (
