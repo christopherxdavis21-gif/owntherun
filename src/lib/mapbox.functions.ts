@@ -163,11 +163,16 @@ export const geocodePlace = createServerFn({ method: "POST" })
 
     const params = new URLSearchParams({
       access_token: token,
-      limit: "5",
+      limit: "10",
       autocomplete: "true",
+      // Prioritize businesses/POIs first, then addresses, then places
+      types: "poi,poi.landmark,address,place,locality,neighborhood",
     });
     if (data.proximity) {
       params.set("proximity", `${data.proximity[0]},${data.proximity[1]}`);
+    } else {
+      // Fallback bias to viewer's IP location for better local-first results
+      params.set("proximity", "ip");
     }
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(data.query)}.json?${params}`;
     try {
