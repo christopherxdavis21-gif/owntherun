@@ -14,7 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      routes: {
+        Row: {
+          coordinates: Json
+          created_at: string
+          description: string | null
+          distance_meters: number
+          id: string
+          is_public: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coordinates?: Json
+          created_at?: string
+          description?: string | null
+          distance_meters?: number
+          id?: string
+          is_public?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coordinates?: Json
+          created_at?: string
+          description?: string | null
+          distance_meters?: number
+          id?: string
+          is_public?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      runs: {
+        Row: {
+          created_at: string
+          distance_meters: number
+          duration_seconds: number
+          id: string
+          notes: string | null
+          ran_at: string
+          route_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_meters: number
+          duration_seconds: number
+          id?: string
+          notes?: string | null
+          ran_at?: string
+          route_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_meters?: number
+          duration_seconds?: number
+          id?: string
+          notes?: string | null
+          ran_at?: string
+          route_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runs_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
