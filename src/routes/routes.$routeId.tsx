@@ -67,7 +67,7 @@ function RouteDetailPage() {
       supabase.auth.getUser(),
     ]);
     setUserId(u.user?.id ?? null);
-    setRoute((r as RouteRow) ?? null);
+    setRoute((r as unknown as RouteRow) ?? null);
 
     if (r) {
       const { data: runData } = await supabase
