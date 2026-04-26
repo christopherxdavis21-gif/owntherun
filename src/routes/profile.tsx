@@ -62,10 +62,6 @@ function ProfilePage() {
     Array<{ code: string; title: string; description: string; tier: AchievementTier; icon: string; earned_at: string }>
   >([]);
 
-  // Phone OTP state
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [otpBusy, setOtpBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
