@@ -27,6 +27,7 @@ export function RouteMap({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const coordsRef = useRef<Coord[]>(coordinates);
+  const pathRef = useRef<Coord[] | undefined>(pathCoordinates);
   const onChangeRef = useRef(onChange);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function RouteMap({
   // keep refs current
   useEffect(() => {
     coordsRef.current = coordinates;
+    pathRef.current = pathCoordinates;
     onChangeRef.current = onChange;
   });
 
