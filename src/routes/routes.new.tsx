@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RouteMap } from "@/components/RouteMap";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
+import { snapToRoads } from "@/lib/mapbox.functions";
 import { totalDistance, formatDistance } from "@/lib/format";
 import { toast } from "sonner";
-import { Undo2, Trash2, MapPin } from "lucide-react";
+import { Undo2, Trash2, MapPin, Loader2 } from "lucide-react";
 
 type Coord = [number, number];
 
