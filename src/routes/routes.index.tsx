@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistance, formatDuration } from "@/lib/format";
-import { Plus, Trophy, Bookmark, Map as MapIcon, ChevronRight } from "lucide-react";
+import { Plus, Trophy, Bookmark, Map as MapIcon, ChevronRight, MapPin } from "lucide-react";
 
 type Coord = [number, number];
 
