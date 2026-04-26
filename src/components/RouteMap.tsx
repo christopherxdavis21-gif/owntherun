@@ -7,6 +7,8 @@ type Coord = [number, number];
 
 interface RouteMapProps {
   coordinates: Coord[];
+  /** Optional snapped polyline to render along roads instead of straight lines between waypoints. */
+  pathCoordinates?: Coord[];
   onChange?: (coords: Coord[]) => void;
   editable?: boolean;
   className?: string;
@@ -15,6 +17,7 @@ interface RouteMapProps {
 
 export function RouteMap({
   coordinates,
+  pathCoordinates,
   onChange,
   editable = false,
   className = "",
