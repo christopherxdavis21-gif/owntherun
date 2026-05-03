@@ -37,7 +37,7 @@ function Landing() {
   return (
     <div className="bg-hero min-h-screen">
       {/* Nav */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
             <span className="font-display text-xl font-black text-primary-foreground">C</span>
