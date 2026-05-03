@@ -28,6 +28,7 @@ import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cance
 import { onLocationFix, startTracking, stopTracking, type LocationFix } from "@/lib/tracking";
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
 
 function isNativePlatform(): boolean {
   // @ts-expect-error - Capacitor injects this global on native builds only
@@ -74,6 +75,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   // Voice guidance
   const [muted, setMuted] = useState(false);
   const [steps, setSteps] = useState<DirectionStep[] | undefined>(undefined);
+  const [primerOpen, setPrimerOpen] = useState(false);
   const voiceSupported = isVoiceSupported();
 
   // Initial mute state from localStorage
@@ -299,6 +301,14 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const handleStart = async () => {
     setPermError(null);
     primeVoice(); // unlock SpeechSynthesis on iOS via this user gesture
+    if (!hasSeenRunPrimer()) {
+      setPrimerOpen(true);
+      return;
+    }
+    await actuallyStart();
+  };
+
+  const actuallyStart = async () => {
     const ok = await beginWatch();
     if (!ok) return;
     startTimer();
@@ -627,6 +637,16 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           </>
         )}
       </aside>
+
+      <RunPermissionPrimer
+        open={primerOpen}
+        onContinue={() => {
+          markRunPrimerSeen();
+          setPrimerOpen(false);
+          void actuallyStart();
+        }}
+        onCancel={() => setPrimerOpen(false)}
+      />
     </div>
   );
 }

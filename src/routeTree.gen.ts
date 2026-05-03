@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrophiesRouteImport } from './routes/trophies'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
@@ -38,6 +39,11 @@ const TermsRoute = TermsRouteImport.update({
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/leaderboards': typeof LeaderboardsRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/leaderboards': typeof LeaderboardsRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/leaderboards': typeof LeaderboardsRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/leaderboards'
     | '/privacy'
     | '/profile'
+    | '/settings'
     | '/stats'
     | '/terms'
     | '/trophies'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/leaderboards'
     | '/privacy'
     | '/profile'
+    | '/settings'
     | '/stats'
     | '/terms'
     | '/trophies'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/leaderboards'
     | '/privacy'
     | '/profile'
+    | '/settings'
     | '/stats'
     | '/terms'
     | '/trophies'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   LeaderboardsRoute: typeof LeaderboardsRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
+  SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
   TermsRoute: typeof TermsRoute
   TrophiesRoute: typeof TrophiesRoute
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeaderboardsRoute: LeaderboardsRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
+  SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
   TermsRoute: TermsRoute,
   TrophiesRoute: TrophiesRoute,
