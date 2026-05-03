@@ -1,8 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapIcon, Timer, Trophy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      throw redirect({ to: "/feed" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Catch Up — Race your friends. Beat your ghost." },
