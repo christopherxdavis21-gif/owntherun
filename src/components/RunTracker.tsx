@@ -637,6 +637,16 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           </>
         )}
       </aside>
+
+      <RunPermissionPrimer
+        open={primerOpen}
+        onContinue={() => {
+          markRunPrimerSeen();
+          setPrimerOpen(false);
+          void actuallyStart();
+        }}
+        onCancel={() => setPrimerOpen(false)}
+      />
     </div>
   );
 }
