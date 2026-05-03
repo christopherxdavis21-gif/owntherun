@@ -64,6 +64,52 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const [routePublic, setRoutePublic] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Voice guidance
+  const [muted, setMuted] = useState(false);
+  const [steps, setSteps] = useState<DirectionStep[] | undefined>(undefined);
+  const voiceSupported = isVoiceSupported();
+
+  // Initial mute state from localStorage
+  useEffect(() => {
+    setMuted(isVoiceMuted());
+  }, []);
+
+  // Fetch turn-by-turn directions when a planned path is provided
+  useEffect(() => {
+    if (!plannedPath || plannedPath.length < 2) {
+      setSteps(undefined);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getRouteDirections({ data: { coordinates: plannedPath } });
+        if (!cancelled) setSteps(res.steps);
+      } catch (err) {
+        console.error("Failed to fetch directions", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [plannedPath]);
+
+  // Run audio guidance — fires on every position update
+  useRunGuidance({
+    active: status === "running",
+    plannedPath,
+    steps,
+    currentCoord: coords.length > 0 ? coords[coords.length - 1] : null,
+    distanceMeters: distance,
+  });
+
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    setVoiceMuted(next);
+    if (next) cancelSpeech();
+  };
+
   // Initial center on user location
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
