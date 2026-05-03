@@ -61,8 +61,8 @@ function AuthPage() {
   };
 
   return (
-    <div className="bg-hero relative flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="absolute left-6 top-6">
+    <div className="bg-hero relative flex min-h-screen items-center justify-center px-4 py-10 pt-[max(2.5rem,env(safe-area-inset-top))]">
+      <div className="absolute left-6 top-[max(1.5rem,calc(env(safe-area-inset-top)+0.5rem))]">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <span className="font-display text-lg font-black text-primary-foreground">C</span>
