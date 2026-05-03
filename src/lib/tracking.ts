@@ -223,9 +223,13 @@ export async function updateLockScreenStats(stats: {
   elevationMeters: number;
   status: "running" | "paused";
 }): Promise<void> {
-  if (!isNative()) return;
+  if (!isNativePlatform()) return;
   try {
-    const { LocalNotifications } = await import(/* @vite-ignore */ "@capacitor/local-notifications");
+    const nativeModule = await importNativeModule<LocalNotificationsModule>(
+      NATIVE_MODULES.localNotifications,
+    );
+    if (!nativeModule) return;
+    const { LocalNotifications } = nativeModule;
     const miles = (stats.distanceMeters / 1609.344).toFixed(2);
     const m = Math.floor(stats.elapsedSeconds / 60);
     const s = String(stats.elapsedSeconds % 60).padStart(2, "0");
@@ -249,7 +253,10 @@ export async function updateLockScreenStats(stats: {
 
   // Live Activity (iOS) — only if plugin is installed
   try {
-    const liveActivities = await import(/* @vite-ignore */ "capacitor-live-activities");
+    const liveActivities = await importNativeModule<LiveActivitiesModule>(
+      NATIVE_MODULES.liveActivities,
+    );
+    if (!liveActivities) return;
     await liveActivities.LiveActivities?.update?.({
       activityId: "current-run",
       contentState: stats,
@@ -264,9 +271,13 @@ export async function updateLockScreenStats(stats: {
  * `emitControl`. Call once during app startup on native.
  */
 export async function registerLockScreenControls(): Promise<void> {
-  if (!isNative()) return;
+  if (!isNativePlatform()) return;
   try {
-    const { LocalNotifications } = await import(/* @vite-ignore */ "@capacitor/local-notifications");
+    const nativeModule = await importNativeModule<LocalNotificationsModule>(
+      NATIVE_MODULES.localNotifications,
+    );
+    if (!nativeModule) return;
+    const { LocalNotifications } = nativeModule;
     await LocalNotifications.registerActionTypes({
       types: [
         {
