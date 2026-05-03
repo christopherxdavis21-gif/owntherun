@@ -1,4 +1,5 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapIcon, Timer, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,20 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // SSR can't see the user's session — re-check on the client.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.localStorage.setItem("catchup:hasOnboarded", "1");
+        navigate({ to: "/feed", replace: true });
+      } else if (window.localStorage.getItem("catchup:hasOnboarded") === "1") {
+        navigate({ to: "/auth", replace: true });
+      }
+    });
+  }, [navigate]);
+
   return (
     <div className="bg-hero min-h-screen">
       {/* Nav */}
