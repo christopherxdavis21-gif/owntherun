@@ -566,6 +566,16 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
               isn't supported in the browser. Elevation comes from your device's GPS
               while running and is refined with terrain data on save.
             </div>
+            {plannedPath && plannedPath.length > 1 && voiceSupported && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-foreground">
+                <div className="font-semibold text-primary">Audio guidance is on</div>
+                <p className="mt-1 text-muted-foreground">
+                  You'll hear turn-by-turn directions, mile splits, off-route
+                  warnings, and a finish cue. Plug in headphones for the best
+                  experience. Tap the audio button to mute.
+                </p>
+              </div>
+            )}
           </>
         )}
       </aside>
