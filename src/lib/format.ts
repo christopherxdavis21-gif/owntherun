@@ -1,4 +1,7 @@
+import { getUnit } from "./units";
+
 const METERS_PER_MILE = 1609.344;
+const METERS_PER_KM = 1000;
 
 export function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -18,17 +21,19 @@ export function parseDuration(input: string): number {
 }
 
 export function formatDistance(meters: number): string {
-  const miles = meters / METERS_PER_MILE;
-  return `${miles.toFixed(2)} mi`;
+  const unit = getUnit();
+  if (unit === "km") return `${(meters / METERS_PER_KM).toFixed(2)} km`;
+  return `${(meters / METERS_PER_MILE).toFixed(2)} mi`;
 }
 
 export function formatPace(meters: number, seconds: number): string {
   if (meters <= 0 || seconds <= 0) return "—";
-  const miles = meters / METERS_PER_MILE;
-  const paceSecPerMile = seconds / miles;
-  const m = Math.floor(paceSecPerMile / 60);
-  const s = Math.round(paceSecPerMile % 60);
-  return `${m}:${s.toString().padStart(2, "0")} /mi`;
+  const unit = getUnit();
+  const denom = unit === "km" ? meters / METERS_PER_KM : meters / METERS_PER_MILE;
+  const paceSec = seconds / denom;
+  const m = Math.floor(paceSec / 60);
+  const s = Math.round(paceSec % 60);
+  return `${m}:${s.toString().padStart(2, "0")} /${unit}`;
 }
 
 // Format a clan tag prefix like "[NYC] " or "" if none
@@ -61,6 +66,7 @@ export function metersToMiles(m: number): number {
 }
 
 export function formatElevation(meters: number): string {
+  if (getUnit() === "km") return `${Math.round(meters).toLocaleString()} m`;
   const ft = Math.round(meters * 3.28084);
   return `${ft.toLocaleString()} ft`;
 }
