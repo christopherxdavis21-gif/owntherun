@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2, BarChart3 } from "lucide-react";
+import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2, BarChart3, Settings as SettingsIcon } from "lucide-react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -76,6 +76,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <UserCircle2 className="h-4 w-4" />
               </Button>
             </Link>
+            <Link to="/settings">
+              <Button size="icon" variant="ghost" aria-label="Settings">
+                <SettingsIcon className="h-4 w-4" />
+              </Button>
+            </Link>
             <Button
               size="icon"
               variant="ghost"
@@ -111,6 +116,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6 md:py-10">{children}</main>
+
+      <footer className="mx-auto max-w-6xl px-4 pb-24 pt-8 text-center text-xs text-muted-foreground md:pb-10">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+          <Link to="/privacy" className="hover:text-foreground hover:underline">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground hover:underline">
+            Terms
+          </Link>
+          <Link to="/settings" className="hover:text-foreground hover:underline">
+            Settings
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
