@@ -29,10 +29,26 @@ export function isVoiceSupported(): boolean {
 // Ordered list of preferred voice names by platform. First match wins.
 // These are the natural-sounding voices shipped with modern OSes.
 const PREFERRED_VOICES = [
-  // iOS / macOS — "enhanced" / "premium" Siri-quality voices
-  "Samantha",
+  // iOS 17+ exposes Siri voices directly when available
+  "Siri Voice 1",
+  "Siri Voice 2",
+  "Siri Voice 3",
+  "Siri Voice 4",
+  "Siri Female (en-US)",
+  "Siri Male (en-US)",
+  "Siri",
+  // iOS / macOS — premium / enhanced voices that share the Siri TTS engine
+  "Ava (Premium)",
   "Ava (Enhanced)",
   "Ava",
+  "Zoe (Premium)",
+  "Zoe (Enhanced)",
+  "Evan (Premium)",
+  "Evan (Enhanced)",
+  "Nicky (Premium)",
+  "Nicky (Enhanced)",
+  "Samantha (Enhanced)",
+  "Samantha",
   "Allison",
   "Susan",
   "Karen",
