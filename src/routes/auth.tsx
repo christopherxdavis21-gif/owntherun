@@ -45,11 +45,13 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        window.localStorage.setItem("catchup:hasOnboarded", "1");
         toast.success("Account created. You're in.");
         navigate({ to: "/feed" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        window.localStorage.setItem("catchup:hasOnboarded", "1");
         navigate({ to: "/feed" });
       }
     } catch (err: unknown) {
