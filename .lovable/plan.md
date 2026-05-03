@@ -1,87 +1,83 @@
-# Apple App Store Prep Plan
+# Proper Fix: Bundle the App for Offline-Capable iOS
 
-You'll handle the **Apple Developer enrollment** and the **Mac/Xcode submission** yourself (those can't happen in Lovable). I'll handle everything Apple's reviewers will look for inside the app itself.
+## The problem
 
----
+TanStack Start is server-rendered — the build outputs a **server bundle** (in `dist/server/`) plus client assets (in `dist/client/`), but no static `index.html`. Capacitor needs a self-contained folder with `index.html` it can load directly on the phone — there's no Node server running inside iOS.
 
-## Part 1 — What I'll build in Lovable
+We also have several `createServerFn` handlers (Mapbox, directions, account deletion) that need a backend to live on. Inside a Capacitor app there's no server, so those calls have to go somewhere — they'll be pointed at your deployed Lovable URL (`https://owntherun.lovable.app`).
 
-### 1. In-app account deletion (Apple requirement 5.1.1(v))
-Apple **rejects** any app with sign-up that doesn't offer in-app account deletion.
+## What I'll build
 
-- New **Edge Function** `delete-account` (uses the service role key to call `auth.admin.deleteUser`) — this is the only safe way to delete an auth user from the client.
-- New **"Danger zone"** section at the bottom of `/profile`:
-  - Red "Delete my account" button
-  - Confirmation dialog that requires typing `DELETE` to proceed
-  - Explains what gets removed (runs, routes, profile, achievements)
-- On success: signs the user out and redirects to `/auth` with a confirmation toast.
-- Profile FK cascades already wipe runs/routes/profile rows when the auth user is deleted, so no extra cleanup migration is needed.
+### 1. Add a separate Capacitor build target
 
-### 2. Privacy Policy page (`/privacy`)
-A real, Apple/GDPR-compliant policy — not a placeholder. Covers:
-- **Location data**: foreground + background GPS, why it's collected (run tracking), that it's stored on Lovable Cloud and never sold
-- **Account data**: email, display name, optional avatar, age, gender, clan tag
-- **Run history**: distance, duration, route, elevation, timestamps
-- **Third parties**: Mapbox (map tiles + geocoding), Lovable Cloud (Supabase) for storage
-- **User rights**: data export, account deletion (links to the new delete flow), contact email
-- **Children**: app is 13+
-- Last-updated date
+Create a new Vite config (`vite.config.mobile.ts`) that produces a **pure static SPA** — no SSR, just `index.html` + JS/CSS — written to `dist-mobile/`. Trigger via a new script: `bun run build:mobile`.
 
-Linked from: footer of every page, the `/auth` screen, and the App Store listing.
+This leaves your existing web build (`bun run build` → server-rendered, deployed to Lovable) completely untouched.
 
-### 3. Terms of Service page (`/terms`)
-Standard ToS covering: acceptable use, leaderboard fairness rules, no medical advice disclaimer (important for a fitness app), liability limits, jurisdiction, ability to terminate accounts.
+### 2. Add a static SPA entry point
 
-### 4. App icons & splash screens
-- **1024×1024 master icon** with the Catch Up brand (lime/dark theme matching your app)
-- All iOS icon sizes Capacitor expects (`AppIcon.appiconset`)
-- Splash screens for iPhone (light + dark)
-- Saved into `/public/app-icons/` so you can drop them into `ios/App/App/Assets.xcassets/` after running `npx cap add ios` on your Mac
+Create `src/main.mobile.tsx` and `index.html` (at project root) that bootstrap TanStack Router in **client-only mode** (no SSR shell). The router loads, hydrates instantly, and the app runs entirely in the browser.
 
-I'll generate the icon as a PNG using the Catch Up "Own The Run" lime-on-dark identity already in your styles.
+### 3. Route server functions to the live API
 
----
+Add a `VITE_API_BASE_URL` env var. When set (mobile build only), all `createServerFn` calls go to `https://owntherun.lovable.app/_serverFn/...` instead of relative URLs. Web build leaves it unset → calls stay relative as today.
 
-## Part 2 — Apple Developer enrollment (you do this)
+This means:
+- Mobile app needs internet to log in, save runs, fetch routes, etc. (same as Strava)
+- GPS tracking still works fully offline (it's all native + local state)
+- Run gets uploaded next time you have signal
 
-Since you don't have an account yet:
+### 4. Update `capacitor.config.ts`
 
-1. Go to **[developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll)**
-2. Sign in with your Apple ID (or create one — use a real name; Apple requires identity verification)
-3. Choose **Individual** ($99/yr) — simplest, fastest. Pick **Organization** ($99/yr but free if non-profit) only if you want the company name shown as the seller and have a D-U-N-S number.
-4. Pay the $99 fee
-5. Wait **24–48 hours** for Apple to verify your identity (sometimes longer for individuals)
-6. Once approved, you'll get access to **App Store Connect**
+Change `webDir` from `dist/client` → `dist-mobile`.
 
-**Heads up for an Individual account**: your personal legal name shows as the seller on the App Store. If you want "Catch Up" or a company name shown instead, you need the Organization route + a D-U-N-S number (free, ~1–2 weeks to get).
+### 5. Add iOS permission strings
 
----
+Create `ios-info-additions.plist` snippet (already documented in `README-mobile.md`) — you'll paste these into Xcode's Info tab. Covers: location-when-in-use, location-always, background modes for GPS recording.
 
-## Part 3 — After enrollment (your Mac, follow `README-mobile.md`)
+### 6. Update README-mobile.md
 
-1. Clone the repo to your Mac (use the GitHub integration → "Connect to GitHub" in Lovable)
-2. Run the Capacitor commands in `README-mobile.md`
-3. Drop the generated icons from `/public/app-icons/` into the iOS asset catalog
-4. Add the privacy descriptions to `Info.plist` (already in the README)
-5. Open in Xcode, sign with your developer account, run on a real iPhone
-6. In **App Store Connect**: create the listing, upload screenshots (I can help script those from the live app later), paste the privacy policy URL (`https://owntherun.lovable.app/privacy`), submit for review
-7. First review usually 24–72 hours. Background location apps sometimes get a follow-up question — answer with "Used to record GPS during a run when the screen is locked, with a persistent foreground notification visible to the user."
+Replace the current commands with the actual working sequence:
 
----
+```text
+bun install
+bun run build:mobile        # NEW — static SPA into dist-mobile/
+bunx cap sync ios
+bunx cap open ios
+```
 
-## What's in scope for me right now
+## Technical details (skip if not interested)
 
-✅ Delete account (edge function + UI + confirmation)
-✅ Privacy policy page
-✅ Terms of service page
-✅ App icon (1024×1024) + iOS icon set + splash screens
-✅ Footer/auth-screen links to privacy + terms
+- `vite.config.mobile.ts` strips the `@cloudflare/vite-plugin` and `tanstack-start` server plugins, keeps `tanstack-router` in SPA mode
+- New `index.html` shell with `<div id="root">` and `<script type="module" src="/src/main.mobile.tsx">`
+- `main.mobile.tsx` does `createRouter()` + `<RouterProvider />` — no `StartClient`
+- Server functions: TanStack Start lets you set a base URL for RPC calls via the runtime config. We'll wire `VITE_API_BASE_URL` into that.
+- CORS: your deployed `owntherun.lovable.app` needs to allow requests from the Capacitor origin (`capacitor://localhost` on iOS). We'll add CORS headers to the server function handler config.
+- Auth: Supabase JS persists tokens in localStorage which Capacitor's WebView supports. Session survives app restarts.
 
-## What's out of scope (you do this on your Mac later)
+## What you do after I'm done
 
-- Capacitor `cap add ios` / Xcode build
-- Apple Developer enrollment
-- App Store Connect listing
-- Screenshot generation (we can do this in a later round)
+On your Mac, in `~/owntherun`:
 
-Ready to build when you approve.
+```bash
+git pull                      # get my changes from GitHub
+bun install
+bun run build:mobile
+bunx cap sync ios
+bunx cap open ios
+```
+
+Then in Xcode: Signing & Capabilities → pick your team → plug in iPhone → press ▶️.
+
+## Estimated time
+
+- My side: ~30 min of build config + testing
+- Your side: ~5 min to re-run commands + sign in Xcode
+
+## Out of scope (later)
+
+- App icons & splash screens (separate pass)
+- Background GPS native plugin wiring (already documented in README-mobile.md, requires a real device to test)
+- Live Activities (Swift widget, also separate)
+
+Approve and I'll build it.
