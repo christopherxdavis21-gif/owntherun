@@ -427,6 +427,21 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
             </Button>
           )}
 
+          {voiceSupported && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={toggleMute}
+              className="gap-1.5"
+              aria-label={muted ? "Unmute audio guidance" : "Mute audio guidance"}
+              title={muted ? "Unmute audio guidance" : "Mute audio guidance"}
+            >
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              <span className="hidden sm:inline">{muted ? "Audio off" : "Audio on"}</span>
+            </Button>
+          )}
+
           {isLive && (
             <div className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground">
               <span
