@@ -29,7 +29,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Catch Up" },
       { name: "description", content: "Be number one in your city, your state, or the world. Own as many routes to climb the leaderboards and be the best runner in your area." },
       { name: "author", content: "Lovable" },
