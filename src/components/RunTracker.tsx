@@ -295,12 +295,13 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     lastAltRef.current = null;
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     setPermError(null);
-    if (!beginWatch()) return;
+    primeVoice(); // unlock SpeechSynthesis on iOS via this user gesture
+    const ok = await beginWatch();
+    if (!ok) return;
     startTimer();
     void requestWakeLock();
-    primeVoice(); // unlock SpeechSynthesis on iOS via this user gesture
     if (plannedPath && plannedPath.length > 1) {
       speak("Starting your run. Follow the route on screen.");
     } else {
@@ -316,8 +317,9 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     speak("Run paused");
     setStatus("paused");
   };
-  const handleResume = () => {
-    if (!beginWatch()) return;
+  const handleResume = async () => {
+    const ok = await beginWatch();
+    if (!ok) return;
     startTimer();
     void requestWakeLock();
     speak("Resuming");
