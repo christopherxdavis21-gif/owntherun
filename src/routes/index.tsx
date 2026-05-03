@@ -10,6 +10,10 @@ export const Route = createFileRoute("/")({
     if (data.session) {
       throw redirect({ to: "/feed" });
     }
+    // Returning user (signed in before on this device) → skip landing
+    if (typeof window !== "undefined" && window.localStorage.getItem("catchup:hasOnboarded") === "1") {
+      throw redirect({ to: "/auth" });
+    }
   },
   head: () => ({
     meta: [
