@@ -133,6 +133,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       if (watchIdRef.current != null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      void stopTracking();
       if (tickRef.current) clearInterval(tickRef.current);
       releaseWakeLock();
     };
