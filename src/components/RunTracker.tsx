@@ -195,46 +195,79 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     setElapsed(Math.floor(accumulatedMsRef.current / 1000));
   };
 
-  const beginWatch = () => {
+  // Shared handler for any incoming GPS fix (web or native background plugin).
+  const handleFix = (
+    coord: Coord,
+    altitude: number | null,
+    altitudeAccuracy: number | null,
+    accuracy: number | null,
+  ) => {
+    // Filter low-accuracy fixes (> 30m) to reduce GPS jitter inflating distance
+    if (accuracy != null && accuracy > 30) {
+      setCenter(coord);
+      return;
+    }
+    if (
+      typeof altitude === "number" &&
+      !Number.isNaN(altitude) &&
+      (altitudeAccuracy == null || altitudeAccuracy <= 15)
+    ) {
+      const lastAlt = lastAltRef.current;
+      if (lastAlt != null) {
+        const dAlt = altitude - lastAlt;
+        if (dAlt > 1) setElevationGain((g) => g + dAlt);
+      }
+      lastAltRef.current = altitude;
+    }
+    setCoords((prev) => {
+      const last = lastFixRef.current;
+      if (last) {
+        const d = haversineMeters(last, coord);
+        if (d < 3) return prev;
+        setDistance((cur) => cur + d);
+      }
+      lastFixRef.current = coord;
+      setCenter(coord);
+      return [...prev, coord];
+    });
+  };
+
+  const nativeUnsubRef = useRef<(() => void) | null>(null);
+
+  const beginWatch = async (): Promise<boolean> => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setPermError("Geolocation is not supported on this device.");
       return false;
     }
+
+    // Native (iOS/Android in Capacitor): use background-geolocation. This is
+    // the ONLY place we trigger the "Always Allow" prompt — never at app launch.
+    if (isNativePlatform()) {
+      try {
+        nativeUnsubRef.current = onLocationFix((fix: LocationFix) => {
+          handleFix(fix.coord, fix.altitude, fix.altitudeAccuracy, fix.accuracy);
+        });
+        const started = await startTracking();
+        if (started) return true;
+        // If native start failed (plugin missing, perm denied), unsubscribe
+        // and fall through to the web watcher so the user still gets tracking.
+        nativeUnsubRef.current?.();
+        nativeUnsubRef.current = null;
+      } catch {
+        nativeUnsubRef.current?.();
+        nativeUnsubRef.current = null;
+      }
+    }
+
+    // Web fallback (or native fallback) — When-In-Use only.
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const next: Coord = [pos.coords.longitude, pos.coords.latitude];
-        // Filter low-accuracy fixes (> 30m) to reduce GPS jitter inflating distance
-        if (pos.coords.accuracy && pos.coords.accuracy > 30) {
-          setCenter(next);
-          return;
-        }
-        // Live elevation gain from GPS altitude (filter noisy/low-accuracy altitudes)
-        const alt = pos.coords.altitude;
-        const altAcc = pos.coords.altitudeAccuracy;
-        if (
-          typeof alt === "number" &&
-          !Number.isNaN(alt) &&
-          (altAcc == null || altAcc <= 15)
-        ) {
-          const lastAlt = lastAltRef.current;
-          if (lastAlt != null) {
-            const dAlt = alt - lastAlt;
-            // Only count climbs > 1m to ignore altitude jitter
-            if (dAlt > 1) setElevationGain((g) => g + dAlt);
-          }
-          lastAltRef.current = alt;
-        }
-        setCoords((prev) => {
-          const last = lastFixRef.current;
-          if (last) {
-            const d = haversineMeters(last, next);
-            if (d < 3) return prev;
-            setDistance((cur) => cur + d);
-          }
-          lastFixRef.current = next;
-          setCenter(next);
-          return [...prev, next];
-        });
+        handleFix(
+          [pos.coords.longitude, pos.coords.latitude],
+          pos.coords.altitude,
+          pos.coords.altitudeAccuracy,
+          pos.coords.accuracy,
+        );
       },
       (err) => {
         setPermError(
@@ -253,6 +286,11 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    if (nativeUnsubRef.current) {
+      nativeUnsubRef.current();
+      nativeUnsubRef.current = null;
+    }
+    void stopTracking();
     lastFixRef.current = null;
     lastAltRef.current = null;
   };
