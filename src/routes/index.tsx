@@ -1,4 +1,5 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapIcon, Timer, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
