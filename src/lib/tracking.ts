@@ -36,10 +36,82 @@ let watcherHandle: { id?: string; webId?: number } | null = null;
 const fixListeners = new Set<Listener>();
 const controlListeners = new Set<ControlListener>();
 
-function isNative(): boolean {
-  // @ts-expect-error - Capacitor sets this global when running on native
-  const cap = typeof window !== "undefined" ? window.Capacitor : undefined;
+const NATIVE_MODULES = {
+  backgroundGeolocation: "@capacitor-community/background-geolocation",
+  localNotifications: "@capacitor/local-notifications",
+  liveActivities: "capacitor-live-activities",
+} as const;
+
+type CapacitorGlobal = {
+  isNativePlatform?: () => boolean;
+};
+
+type NativeLocation = {
+  latitude: number;
+  longitude: number;
+  altitude: number | null;
+  altitudeAccuracy: number | null;
+  accuracy: number | null;
+  time: number;
+};
+
+type BackgroundGeolocationModule = {
+  BackgroundGeolocation: {
+    addWatcher: (
+      options: {
+        backgroundMessage: string;
+        backgroundTitle: string;
+        requestPermissions: boolean;
+        stale: boolean;
+        distanceFilter: number;
+      },
+      callback: (location: NativeLocation | null) => void,
+    ) => Promise<string>;
+    removeWatcher: (options: { id: string }) => Promise<void>;
+  };
+};
+
+type LocalNotificationsModule = {
+  LocalNotifications: {
+    schedule: (options: {
+      notifications: Array<{
+        id: number;
+        title: string;
+        body: string;
+        ongoing: boolean;
+        autoCancel: boolean;
+        actionTypeId: string;
+      }>;
+    }) => Promise<void>;
+    registerActionTypes: (options: {
+      types: Array<{
+        id: string;
+        actions: Array<{ id: string; title: string; destructive?: boolean }>;
+      }>;
+    }) => Promise<void>;
+    addListener: (
+      eventName: "localNotificationActionPerformed",
+      listenerFunc: (event: { actionId: string }) => void,
+    ) => Promise<unknown>;
+  };
+};
+
+type LiveActivitiesModule = {
+  LiveActivities?: {
+    update?: (options: { activityId: string; contentState: unknown }) => Promise<void>;
+  };
+};
+
+export function isNativePlatform(): boolean {
+  const cap = typeof window !== "undefined"
+    ? (window as Window & { Capacitor?: CapacitorGlobal }).Capacitor
+    : undefined;
   return !!cap?.isNativePlatform?.();
+}
+
+async function importNativeModule<T>(specifier: string): Promise<T | null> {
+  if (!isNativePlatform()) return null;
+  return (await import(/* @vite-ignore */ specifier)) as T;
 }
 
 export function onLocationFix(fn: Listener) {
@@ -66,9 +138,13 @@ export function emitControl(event: TrackingControlEvent) {
 export async function startTracking(): Promise<boolean> {
   if (watcherHandle) await stopTracking();
 
-  if (isNative()) {
+  if (isNativePlatform()) {
     try {
-      const { BackgroundGeolocation } = await import(/* @vite-ignore */ "@capacitor-community/background-geolocation");
+      const nativeModule = await importNativeModule<BackgroundGeolocationModule>(
+        NATIVE_MODULES.backgroundGeolocation,
+      );
+      if (!nativeModule) return false;
+      const { BackgroundGeolocation } = nativeModule;
       const id = await BackgroundGeolocation.addWatcher(
         {
           backgroundMessage: "Recording your run",
@@ -77,14 +153,8 @@ export async function startTracking(): Promise<boolean> {
           stale: false,
           distanceFilter: 3,
         },
-        (location: {
-          latitude: number;
-          longitude: number;
-          altitude: number | null;
-          altitudeAccuracy: number | null;
-          accuracy: number | null;
-          time: number;
-        }) => {
+        (location) => {
+          if (!location) return;
           emitFix({
             coord: [location.longitude, location.latitude],
             altitude: location.altitude,
@@ -123,9 +193,13 @@ export async function startTracking(): Promise<boolean> {
 export async function stopTracking(): Promise<void> {
   if (!watcherHandle) return;
 
-  if (watcherHandle.id && isNative()) {
+  if (watcherHandle.id && isNativePlatform()) {
     try {
-      const { BackgroundGeolocation } = await import(/* @vite-ignore */ "@capacitor-community/background-geolocation");
+      const nativeModule = await importNativeModule<BackgroundGeolocationModule>(
+        NATIVE_MODULES.backgroundGeolocation,
+      );
+      if (!nativeModule) return;
+      const { BackgroundGeolocation } = nativeModule;
       await BackgroundGeolocation.removeWatcher({ id: watcherHandle.id });
     } catch {
       /* ignore */
