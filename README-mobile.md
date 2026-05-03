@@ -33,14 +33,19 @@ Open `ios/App/App/Info.plist` and add:
 
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>Catch Up uses your location to record runs.</string>
+<string>Catch Up uses your location to record your run path on the map.</string>
 <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>Catch Up keeps recording your run while your phone is locked.</string>
+<string>Catch Up keeps recording your run when your phone is locked or the app is in the background. Background location is only requested after you tap Start, never at launch.</string>
 <key>UIBackgroundModes</key>
 <array>
   <string>location</string>
 </array>
 ```
+
+> **App Review note:** The "Always Allow" prompt is intentionally only shown
+> the first time the user taps **Start** on a run — never at app launch.
+> See `RunTracker.tsx` → `beginWatch()` for where the native
+> `BackgroundGeolocation.addWatcher({ requestPermissions: true })` call lives.
 
 For the Live Activity on the lock screen + Dynamic Island, scaffold a
 SwiftUI Widget Extension in Xcode (File → New → Target → Widget Extension)
