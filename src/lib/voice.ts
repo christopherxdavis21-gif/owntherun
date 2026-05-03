@@ -126,9 +126,9 @@ export function speak(
     } else {
       u.lang = "en-US";
     }
-    // Slightly slower + warmer than default = friendlier coach tone.
-    u.rate = opts.rate ?? 0.95;
-    u.pitch = 1.05;
+    // Match Siri's natural cadence — neutral pitch, near-default rate.
+    u.rate = opts.rate ?? 1;
+    u.pitch = 1;
     u.volume = 1;
     synth.speak(u);
   } catch {
