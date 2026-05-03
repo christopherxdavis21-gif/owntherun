@@ -255,24 +255,35 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     if (!beginWatch()) return;
     startTimer();
     void requestWakeLock();
+    primeVoice(); // unlock SpeechSynthesis on iOS via this user gesture
+    if (plannedPath && plannedPath.length > 1) {
+      speak("Starting your run. Follow the route on screen.");
+    } else {
+      speak("Run started");
+    }
     setStatus("running");
   };
   const handlePause = () => {
     endWatch();
     stopTimer();
     releaseWakeLock();
+    cancelSpeech();
+    speak("Run paused");
     setStatus("paused");
   };
   const handleResume = () => {
     if (!beginWatch()) return;
     startTimer();
     void requestWakeLock();
+    speak("Resuming");
     setStatus("running");
   };
   const handleStop = () => {
     endWatch();
     stopTimer();
     releaseWakeLock();
+    cancelSpeech();
+    speak("Run stopped");
     setStatus("stopped");
     if (coords.length > 0) {
       const now = new Date();
