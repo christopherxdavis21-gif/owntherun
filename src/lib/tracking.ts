@@ -68,7 +68,7 @@ export async function startTracking(): Promise<boolean> {
 
   if (isNative()) {
     try {
-      const { BackgroundGeolocation } = await import(
+      const { BackgroundGeolocation } = await import(/* @vite-ignore */ 
         // @ts-expect-error - optional native dependency
         "@capacitor-community/background-geolocation"
       );
@@ -128,7 +128,7 @@ export async function stopTracking(): Promise<void> {
 
   if (watcherHandle.id && isNative()) {
     try {
-      const { BackgroundGeolocation } = await import(
+      const { BackgroundGeolocation } = await import(/* @vite-ignore */ 
         // @ts-expect-error - optional native dependency
         "@capacitor-community/background-geolocation"
       );
@@ -157,7 +157,7 @@ export async function updateLockScreenStats(stats: {
 }): Promise<void> {
   if (!isNative()) return;
   try {
-    const { LocalNotifications } = await import(
+    const { LocalNotifications } = await import(/* @vite-ignore */ 
       // @ts-expect-error - optional native dependency
       "@capacitor/local-notifications"
     );
@@ -184,7 +184,7 @@ export async function updateLockScreenStats(stats: {
 
   // Live Activity (iOS) — only if plugin is installed
   try {
-    const liveActivities = await import(
+    const liveActivities = await import(/* @vite-ignore */ 
       // @ts-expect-error - optional native dependency
       "capacitor-live-activities"
     );
@@ -204,7 +204,7 @@ export async function updateLockScreenStats(stats: {
 export async function registerLockScreenControls(): Promise<void> {
   if (!isNative()) return;
   try {
-    const { LocalNotifications } = await import(
+    const { LocalNotifications } = await import(/* @vite-ignore */ 
       // @ts-expect-error - optional native dependency
       "@capacitor/local-notifications"
     );
