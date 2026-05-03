@@ -68,10 +68,7 @@ export async function startTracking(): Promise<boolean> {
 
   if (isNative()) {
     try {
-      const { BackgroundGeolocation } = await import(/* @vite-ignore */ 
-        // @ts-expect-error - optional native dependency
-        "@capacitor-community/background-geolocation"
-      );
+      const { BackgroundGeolocation } = await import(/* @vite-ignore */ "@capacitor-community/background-geolocation");
       const id = await BackgroundGeolocation.addWatcher(
         {
           backgroundMessage: "Recording your run",
@@ -128,10 +125,7 @@ export async function stopTracking(): Promise<void> {
 
   if (watcherHandle.id && isNative()) {
     try {
-      const { BackgroundGeolocation } = await import(/* @vite-ignore */ 
-        // @ts-expect-error - optional native dependency
-        "@capacitor-community/background-geolocation"
-      );
+      const { BackgroundGeolocation } = await import(/* @vite-ignore */ "@capacitor-community/background-geolocation");
       await BackgroundGeolocation.removeWatcher({ id: watcherHandle.id });
     } catch {
       /* ignore */
@@ -157,10 +151,7 @@ export async function updateLockScreenStats(stats: {
 }): Promise<void> {
   if (!isNative()) return;
   try {
-    const { LocalNotifications } = await import(/* @vite-ignore */ 
-      // @ts-expect-error - optional native dependency
-      "@capacitor/local-notifications"
-    );
+    const { LocalNotifications } = await import(/* @vite-ignore */ "@capacitor/local-notifications");
     const miles = (stats.distanceMeters / 1609.344).toFixed(2);
     const m = Math.floor(stats.elapsedSeconds / 60);
     const s = String(stats.elapsedSeconds % 60).padStart(2, "0");
@@ -184,10 +175,7 @@ export async function updateLockScreenStats(stats: {
 
   // Live Activity (iOS) — only if plugin is installed
   try {
-    const liveActivities = await import(/* @vite-ignore */ 
-      // @ts-expect-error - optional native dependency
-      "capacitor-live-activities"
-    );
+    const liveActivities = await import(/* @vite-ignore */ "capacitor-live-activities");
     await liveActivities.LiveActivities?.update?.({
       activityId: "current-run",
       contentState: stats,
@@ -204,10 +192,7 @@ export async function updateLockScreenStats(stats: {
 export async function registerLockScreenControls(): Promise<void> {
   if (!isNative()) return;
   try {
-    const { LocalNotifications } = await import(/* @vite-ignore */ 
-      // @ts-expect-error - optional native dependency
-      "@capacitor/local-notifications"
-    );
+    const { LocalNotifications } = await import(/* @vite-ignore */ "@capacitor/local-notifications");
     await LocalNotifications.registerActionTypes({
       types: [
         {
