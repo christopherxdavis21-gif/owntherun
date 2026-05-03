@@ -22,8 +22,11 @@ import {
   haversineMeters,
 } from "@/lib/format";
 import { computeElevationGain } from "@/lib/mapbox.functions";
+import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
+import { useRunGuidance } from "@/hooks/useRunGuidance";
+import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
 import { toast } from "sonner";
-import { Play, Pause, Square, MapPin, Loader2, RotateCcw } from "lucide-react";
+import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 
 type Coord = [number, number];
 type Visibility = "private" | "public" | "leaderboard";
