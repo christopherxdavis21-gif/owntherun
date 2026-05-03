@@ -22,8 +22,11 @@ import {
   haversineMeters,
 } from "@/lib/format";
 import { computeElevationGain } from "@/lib/mapbox.functions";
+import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
+import { useRunGuidance } from "@/hooks/useRunGuidance";
+import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
 import { toast } from "sonner";
-import { Play, Pause, Square, MapPin, Loader2, RotateCcw } from "lucide-react";
+import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 
 type Coord = [number, number];
 type Visibility = "private" | "public" | "leaderboard";
@@ -60,6 +63,52 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const [routeName, setRouteName] = useState("");
   const [routePublic, setRoutePublic] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Voice guidance
+  const [muted, setMuted] = useState(false);
+  const [steps, setSteps] = useState<DirectionStep[] | undefined>(undefined);
+  const voiceSupported = isVoiceSupported();
+
+  // Initial mute state from localStorage
+  useEffect(() => {
+    setMuted(isVoiceMuted());
+  }, []);
+
+  // Fetch turn-by-turn directions when a planned path is provided
+  useEffect(() => {
+    if (!plannedPath || plannedPath.length < 2) {
+      setSteps(undefined);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getRouteDirections({ data: { coordinates: plannedPath } });
+        if (!cancelled) setSteps(res.steps);
+      } catch (err) {
+        console.error("Failed to fetch directions", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [plannedPath]);
+
+  // Run audio guidance — fires on every position update
+  useRunGuidance({
+    active: status === "running",
+    plannedPath,
+    steps,
+    currentCoord: coords.length > 0 ? coords[coords.length - 1] : null,
+    distanceMeters: distance,
+  });
+
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    setVoiceMuted(next);
+    if (next) cancelSpeech();
+  };
 
   // Initial center on user location
   useEffect(() => {
@@ -206,24 +255,35 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     if (!beginWatch()) return;
     startTimer();
     void requestWakeLock();
+    primeVoice(); // unlock SpeechSynthesis on iOS via this user gesture
+    if (plannedPath && plannedPath.length > 1) {
+      speak("Starting your run. Follow the route on screen.");
+    } else {
+      speak("Run started");
+    }
     setStatus("running");
   };
   const handlePause = () => {
     endWatch();
     stopTimer();
     releaseWakeLock();
+    cancelSpeech();
+    speak("Run paused");
     setStatus("paused");
   };
   const handleResume = () => {
     if (!beginWatch()) return;
     startTimer();
     void requestWakeLock();
+    speak("Resuming");
     setStatus("running");
   };
   const handleStop = () => {
     endWatch();
     stopTimer();
     releaseWakeLock();
+    cancelSpeech();
+    speak("Run stopped");
     setStatus("stopped");
     if (coords.length > 0) {
       const now = new Date();
@@ -367,6 +427,21 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
             </Button>
           )}
 
+          {voiceSupported && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={toggleMute}
+              className="gap-1.5"
+              aria-label={muted ? "Unmute audio guidance" : "Mute audio guidance"}
+              title={muted ? "Unmute audio guidance" : "Mute audio guidance"}
+            >
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              <span className="hidden sm:inline">{muted ? "Audio off" : "Audio on"}</span>
+            </Button>
+          )}
+
           {isLive && (
             <div className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground">
               <span
@@ -491,6 +566,16 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
               isn't supported in the browser. Elevation comes from your device's GPS
               while running and is refined with terrain data on save.
             </div>
+            {plannedPath && plannedPath.length > 1 && voiceSupported && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-foreground">
+                <div className="font-semibold text-primary">Audio guidance is on</div>
+                <p className="mt-1 text-muted-foreground">
+                  You'll hear turn-by-turn directions, mile splits, off-route
+                  warnings, and a finish cue. Plug in headphones for the best
+                  experience. Tap the audio button to mute.
+                </p>
+              </div>
+            )}
           </>
         )}
       </aside>
