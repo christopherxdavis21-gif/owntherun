@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2, BarChart3, Settings as SettingsIcon } from "lucide-react";
+import appIcon from "@/assets/app-icon.png";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
