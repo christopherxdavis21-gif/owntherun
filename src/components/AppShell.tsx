@@ -42,8 +42,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <img src={appIcon} alt="Catch Up" className="h-8 w-8 rounded-md" />
             <span className="font-display text-xl font-bold tracking-tight">Catch Up</span>
           </Link>
-            <span className="font-display text-xl font-bold tracking-tight">Catch Up</span>
-          </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
             {navItems.map(({ to, label, icon: Icon }) => {
