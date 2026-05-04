@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Map as MapIcon, Activity, Trophy, Plus, Users, UserCircle2, BarChart3, Settings as SettingsIcon } from "lucide-react";
+import appIcon from "@/assets/app-icon.png";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,9 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link to="/feed" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-              <span className="font-display text-lg font-black text-primary-foreground">C</span>
-            </div>
+            <img src={appIcon} alt="Catch Up" className="h-8 w-8 rounded-md" />
             <span className="font-display text-xl font-bold tracking-tight">Catch Up</span>
           </Link>
 
