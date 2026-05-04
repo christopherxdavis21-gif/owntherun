@@ -1,83 +1,57 @@
-# Proper Fix: Bundle the App for Offline-Capable iOS
+## Plan: Generate Catch Up app icon (iOS + Android)
 
-## The problem
+### Step 1 — Generate the icon with AI
 
-TanStack Start is server-rendered — the build outputs a **server bundle** (in `dist/server/`) plus client assets (in `dist/client/`), but no static `index.html`. Capacitor needs a self-contained folder with `index.html` it can load directly on the phone — there's no Node server running inside iOS.
+Use Lovable AI (`google/gemini-3-pro-image-preview` for max quality) to generate a 1024×1024 master icon:
 
-We also have several `createServerFn` handlers (Mapbox, directions, account deletion) that need a backend to live on. Inside a Capacitor app there's no server, so those calls have to go somewhere — they'll be pointed at your deployed Lovable URL (`https://owntherun.lovable.app`).
+- Bold "C" mark on lime-green (#c6f700) background
+- Subtle running/motion element (chevron, motion lines, or stylized runner silhouette)
+- Flat, modern, app-store style — no drop shadows, no transparency, no rounded corners (Apple/Google add those)
+- Save master to `/mnt/documents/catchup-icon-1024.png` so you can preview before we commit
 
-## What I'll build
+I'll show you the result first. If you don't like it, I'll regenerate with tweaks before continuing.
 
-### 1. Add a separate Capacitor build target
+### Step 2 — Generate all required sizes
 
-Create a new Vite config (`vite.config.mobile.ts`) that produces a **pure static SPA** — no SSR, just `index.html` + JS/CSS — written to `dist-mobile/`. Trigger via a new script: `bun run build:mobile`.
+Once approved, use ImageMagick to slice the 1024 master into every size iOS and Android need:
 
-This leaves your existing web build (`bun run build` → server-rendered, deployed to Lovable) completely untouched.
+**iOS** (`ios/App/App/Assets.xcassets/AppIcon.appiconset/`):
+- 20pt, 29pt, 40pt, 60pt, 76pt, 83.5pt, 1024pt — all @1x/@2x/@3x variants (~18 PNGs)
+- Updated `Contents.json` manifest
 
-### 2. Add a static SPA entry point
+**Android** (`android/app/src/main/res/`):
+- mipmap-mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi (48–192 px)
+- Both `ic_launcher.png` and `ic_launcher_round.png`
+- Adaptive icon: foreground + background layers in `mipmap-anydpi-v26/`
 
-Create `src/main.mobile.tsx` and `index.html` (at project root) that bootstrap TanStack Router in **client-only mode** (no SSR shell). The router loads, hydrates instantly, and the app runs entirely in the browser.
+### Step 3 — Wire into Capacitor
 
-### 3. Route server functions to the live API
-
-Add a `VITE_API_BASE_URL` env var. When set (mobile build only), all `createServerFn` calls go to `https://owntherun.lovable.app/_serverFn/...` instead of relative URLs. Web build leaves it unset → calls stay relative as today.
-
-This means:
-- Mobile app needs internet to log in, save runs, fetch routes, etc. (same as Strava)
-- GPS tracking still works fully offline (it's all native + local state)
-- Run gets uploaded next time you have signal
-
-### 4. Update `capacitor.config.ts`
-
-Change `webDir` from `dist/client` → `dist-mobile`.
-
-### 5. Add iOS permission strings
-
-Create `ios-info-additions.plist` snippet (already documented in `README-mobile.md`) — you'll paste these into Xcode's Info tab. Covers: location-when-in-use, location-always, background modes for GPS recording.
-
-### 6. Update README-mobile.md
-
-Replace the current commands with the actual working sequence:
-
-```text
-bun install
-bun run build:mobile        # NEW — static SPA into dist-mobile/
-bunx cap sync ios
-bunx cap open ios
-```
-
-## Technical details (skip if not interested)
-
-- `vite.config.mobile.ts` strips the `@cloudflare/vite-plugin` and `tanstack-start` server plugins, keeps `tanstack-router` in SPA mode
-- New `index.html` shell with `<div id="root">` and `<script type="module" src="/src/main.mobile.tsx">`
-- `main.mobile.tsx` does `createRouter()` + `<RouterProvider />` — no `StartClient`
-- Server functions: TanStack Start lets you set a base URL for RPC calls via the runtime config. We'll wire `VITE_API_BASE_URL` into that.
-- CORS: your deployed `owntherun.lovable.app` needs to allow requests from the Capacitor origin (`capacitor://localhost` on iOS). We'll add CORS headers to the server function handler config.
-- Auth: Supabase JS persists tokens in localStorage which Capacitor's WebView supports. Session survives app restarts.
-
-## What you do after I'm done
-
-On your Mac, in `~/owntherun`:
+Use the `@capacitor/assets` tool (industry standard) to handle the generation cleanly:
 
 ```bash
-git pull                      # get my changes from GitHub
+bun add -D @capacitor/assets
+# Place 1024 master at resources/icon.png
+bunx capacitor-assets generate --iconBackgroundColor "#c6f700" --iconBackgroundColorDark "#0a0a0a"
+```
+
+This auto-generates and places every icon in the right `ios/` and `android/` folders.
+
+### Step 4 — What you do on your Mac
+
+```bash
+git pull
 bun install
-bun run build:mobile
 bunx cap sync ios
+bunx cap sync android   # if you set up Android too
 bunx cap open ios
 ```
 
-Then in Xcode: Signing & Capabilities → pick your team → plug in iPhone → press ▶️.
+Rebuild in Xcode → new icon appears on your phone. For TestFlight, the new icon ships with the next archive.
 
-## Estimated time
+### Notes
 
-- My side: ~30 min of build config + testing
-- Your side: ~5 min to re-run commands + sign in Xcode
+- Web favicon stays separate (already in `public/`) — this plan only covers the native app icon
+- I won't touch your published web build at all
+- Total time on my side: ~5 min generate + place files. Your side: ~2 min sync + rebuild.
 
-## Out of scope (later)
-
-- App icons & splash screens (separate pass)
-- Background GPS native plugin wiring (already documented in README-mobile.md, requires a real device to test)
-- Live Activities (Swift widget, also separate)
-
-Approve and I'll build it.
+Approve and I'll generate the icon for your review first.
