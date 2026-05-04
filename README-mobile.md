@@ -17,7 +17,10 @@ bun install
 bun add -d @capacitor/core @capacitor/cli
 bun add @capacitor/ios @capacitor/local-notifications
 
-# Sync the latest config + shim into the iOS project
+# Generate app icons + splash for all sizes from resources/icon.png + resources/splash.png
+bun run icons
+
+# Sync the latest config + assets into the iOS project
 bunx cap sync ios
 
 # Open in Xcode
@@ -28,9 +31,13 @@ If the `ios/` folder doesn't exist yet (first time only):
 
 ```bash
 bunx cap add ios
+bun run icons
 bunx cap sync ios
 bunx cap open ios
 ```
+
+> **Updating the icon later?** Replace `resources/icon.png` (1024×1024 PNG, no
+> transparency, no rounded corners) and re-run `bun run icons && bunx cap sync ios`.
 
 ## In Xcode
 
