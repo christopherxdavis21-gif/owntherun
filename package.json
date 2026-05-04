@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "icons": "capacitor-assets generate --iconBackgroundColor #c6f700 --iconBackgroundColorDark #0a0a0a --splashBackgroundColor #0a0a0a --splashBackgroundColorDark #0a0a0a"
+    "icons": "capacitor-assets generate --iconBackgroundColor #0a0a0a --iconBackgroundColorDark #0a0a0a --splashBackgroundColor #0a0a0a --splashBackgroundColorDark #0a0a0a"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
