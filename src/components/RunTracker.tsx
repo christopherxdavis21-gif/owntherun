@@ -55,6 +55,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const [elevationGain, setElevationGain] = useState(0); // meters, live from GPS altitude
   const [center, setCenter] = useState<Coord | undefined>(undefined);
   const [permError, setPermError] = useState<string | null>(null);
+  const [trackingSource, setTrackingSource] = useState<"native" | "web" | null>(null);
+  const [lastAccuracy, setLastAccuracy] = useState<number | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const lastFixRef = useRef<Coord | null>(null);
@@ -199,17 +201,20 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   };
 
   // Shared handler for any incoming GPS fix (web or native background plugin).
+  // IMPORTANT: we no longer drop low-accuracy fixes entirely — that was the
+  // root cause of "ran a 5k, only tracked 0.01 mi". Under tree cover or in
+  // urban canyons every single fix can come back with accuracy > 30m, which
+  // meant we threw away the whole run. Now we always record the position
+  // (so the map keeps drawing), and only skip the *distance* increment when
+  // the movement is smaller than the GPS noise floor.
   const handleFix = (
     coord: Coord,
     altitude: number | null,
     altitudeAccuracy: number | null,
     accuracy: number | null,
   ) => {
-    // Filter low-accuracy fixes (> 30m) to reduce GPS jitter inflating distance
-    if (accuracy != null && accuracy > 30) {
-      setCenter(coord);
-      return;
-    }
+    if (accuracy != null) setLastAccuracy(accuracy);
+
     if (
       typeof altitude === "number" &&
       !Number.isNaN(altitude) &&
@@ -226,12 +231,28 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       const last = lastFixRef.current;
       if (last) {
         const d = haversineMeters(last, coord);
-        if (d < 3) return prev;
+        // Minimum movement to register: 1m, OR larger than the GPS noise
+        // floor so we don't accumulate jitter as distance.
+        const noiseFloor = Math.max(1, (accuracy ?? 0) * 0.5);
+        if (d < noiseFloor) {
+          setCenter(coord);
+          return prev;
+        }
         setDistance((cur) => cur + d);
       }
       lastFixRef.current = coord;
       setCenter(coord);
-      return [...prev, coord];
+      const next = [...prev, coord];
+      // Persist live so a crash/kill doesn't lose the whole run
+      try {
+        window.localStorage.setItem(
+          "otr:active-run-coords",
+          JSON.stringify(next.slice(-2000)),
+        );
+      } catch {
+        /* quota or private mode — ignore */
+      }
+      return next;
     });
   };
 
