@@ -9,8 +9,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Catch Up" },
-      { name: "description", content: "Sign in to log runs and chase leaderboards on Catch Up." },
+      { title: "Sign in — Own The Run" },
+      { name: "description", content: "Sign in to log runs and chase leaderboards on Own The Run." },
     ],
   }),
   component: AuthPage,
@@ -69,7 +69,7 @@ function AuthPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <span className="font-display text-lg font-black text-primary-foreground">C</span>
           </div>
-          <span className="font-display text-lg font-bold tracking-tight">Catch Up</span>
+          <span className="font-display text-lg font-bold tracking-tight">Own The Run</span>
         </Link>
       </div>
 

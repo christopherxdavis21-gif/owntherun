@@ -76,7 +76,7 @@ type RankRow = {
 export const Route = createFileRoute("/leaderboards")({
   head: () => ({
     meta: [
-      { title: "Leaderboards — Catch Up" },
+      { title: "Leaderboards — Own The Run" },
       { name: "description", content: "Global leaderboards across miles, pace, and time." },
     ],
   }),

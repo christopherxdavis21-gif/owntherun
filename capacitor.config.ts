@@ -21,7 +21,7 @@
 
 const config = {
   appId: "app.catchup.run",
-  appName: "Catch Up",
+  appName: "Own The Run",
   webDir: "public/capacitor-shim",
   server: {
     androidScheme: "https",
@@ -30,7 +30,7 @@ const config = {
   },
   plugins: {
     BackgroundGeolocation: {
-      notificationTitle: "Catch Up — Recording run",
+      notificationTitle: "Own The Run — Recording run",
       notificationText: "Tap to return to your run",
     },
     LocalNotifications: {

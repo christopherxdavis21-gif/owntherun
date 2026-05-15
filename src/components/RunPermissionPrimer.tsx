@@ -57,7 +57,7 @@ export function RunPermissionPrimer({
             Before we start tracking
           </DialogTitle>
           <DialogDescription>
-            Catch Up uses your phone's GPS to record your route, distance, pace,
+            Own The Run uses your phone's GPS to record your route, distance, pace,
             and elevation. Here's exactly what that means.
           </DialogDescription>
         </DialogHeader>

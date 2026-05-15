@@ -3,16 +3,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "Privacy Policy — Catch Up" },
+      { title: "Privacy Policy — Own The Run" },
       {
         name: "description",
         content:
-          "How Catch Up collects, uses, and protects your location data, account information, and run history.",
+          "How Own The Run collects, uses, and protects your location data, account information, and run history.",
       },
-      { property: "og:title", content: "Privacy Policy — Catch Up" },
+      { property: "og:title", content: "Privacy Policy — Own The Run" },
       {
         property: "og:description",
-        content: "How Catch Up handles your location data and account information.",
+        content: "How Own The Run handles your location data and account information.",
       },
     ],
   }),
@@ -23,7 +23,7 @@ function PrivacyPage() {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-6 py-12 text-foreground">
       <Link to="/" className="text-sm text-primary hover:underline">
-        ← Back to Catch Up
+        ← Back to Own The Run
       </Link>
       <h1 className="font-display mt-6 text-4xl font-black tracking-tight">Privacy Policy</h1>
       <p className="mt-2 text-sm text-muted-foreground">Last updated: 26 April 2026</p>
@@ -32,7 +32,7 @@ function PrivacyPage() {
         <section>
           <h2 className="font-display text-xl font-bold">1. Who we are</h2>
           <p>
-            Catch Up ("we", "us") is a run-tracking app that lets runners record routes,
+            Own The Run ("we", "us") is a run-tracking app that lets runners record routes,
             compare times, and compete on local leaderboards. This policy explains what
             we collect, why, and the rights you have over your data.
           </p>
@@ -105,7 +105,7 @@ function PrivacyPage() {
         <section>
           <h2 className="font-display text-xl font-bold">5. Background location</h2>
           <p>
-            On mobile, Catch Up requests "Always" location access so it can keep
+            On mobile, Own The Run requests "Always" location access so it can keep
             recording your run while your phone is locked or another app is open. A
             persistent notification is shown the entire time recording is active. We do
             not collect location when you are not in an active run.
@@ -133,7 +133,7 @@ function PrivacyPage() {
 
         <section>
           <h2 className="font-display text-xl font-bold">7. Children</h2>
-          <p>Catch Up is intended for users aged 13 and over.</p>
+          <p>Own The Run is intended for users aged 13 and over.</p>
         </section>
 
         <section>

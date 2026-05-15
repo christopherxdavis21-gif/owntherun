@@ -35,7 +35,7 @@ type GroupRow = {
 export const Route = createFileRoute("/groups/")({
   head: () => ({
     meta: [
-      { title: "Run Clubs — Catch Up" },
+      { title: "Run Clubs — Own The Run" },
       { name: "description", content: "Create or join run clubs and compete on group leaderboards." },
     ],
   }),

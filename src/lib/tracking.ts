@@ -148,7 +148,7 @@ export async function startTracking(): Promise<boolean> {
       const id = await BackgroundGeolocation.addWatcher(
         {
           backgroundMessage: "Recording your run",
-          backgroundTitle: "Catch Up",
+          backgroundTitle: "Own The Run",
           requestPermissions: true,
           stale: false,
           distanceFilter: 3,

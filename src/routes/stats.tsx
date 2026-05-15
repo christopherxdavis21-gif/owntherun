@@ -25,7 +25,7 @@ import {
 import type { AchievementTier } from "@/lib/trophy";
 
 export const Route = createFileRoute("/stats")({
-  head: () => ({ meta: [{ title: "Stats — Catch Up" }] }),
+  head: () => ({ meta: [{ title: "Stats — Own The Run" }] }),
   component: StatsPage,
 });
 

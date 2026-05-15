@@ -3,15 +3,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service — Catch Up" },
+      { title: "Terms of Service — Own The Run" },
       {
         name: "description",
-        content: "The rules for using Catch Up: leaderboard fairness, acceptable use, and disclaimers.",
+        content: "The rules for using Own The Run: leaderboard fairness, acceptable use, and disclaimers.",
       },
-      { property: "og:title", content: "Terms of Service — Catch Up" },
+      { property: "og:title", content: "Terms of Service — Own The Run" },
       {
         property: "og:description",
-        content: "The rules for using Catch Up.",
+        content: "The rules for using Own The Run.",
       },
     ],
   }),
@@ -22,7 +22,7 @@ function TermsPage() {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-6 py-12 text-foreground">
       <Link to="/" className="text-sm text-primary hover:underline">
-        ← Back to Catch Up
+        ← Back to Own The Run
       </Link>
       <h1 className="font-display mt-6 text-4xl font-black tracking-tight">Terms of Service</h1>
       <p className="mt-2 text-sm text-muted-foreground">Last updated: 26 April 2026</p>
@@ -31,7 +31,7 @@ function TermsPage() {
         <section>
           <h2 className="font-display text-xl font-bold">1. Acceptance</h2>
           <p>
-            By creating a Catch Up account or using the app you agree to these Terms.
+            By creating a Own The Run account or using the app you agree to these Terms.
             If you do not agree, do not use the service.
           </p>
         </section>
@@ -39,7 +39,7 @@ function TermsPage() {
         <section>
           <h2 className="font-display text-xl font-bold">2. The service</h2>
           <p>
-            Catch Up is a run-tracking and leaderboard app. We may add, change, or
+            Own The Run is a run-tracking and leaderboard app. We may add, change, or
             remove features at any time. We aim for high uptime but do not guarantee
             uninterrupted service.
           </p>
@@ -76,7 +76,7 @@ function TermsPage() {
         <section>
           <h2 className="font-display text-xl font-bold">6. Health disclaimer</h2>
           <p>
-            Catch Up is not a medical device. Information shown in the app
+            Own The Run is not a medical device. Information shown in the app
             (distance, pace, heart-rate-derived stats, training suggestions) is for
             general fitness use only and is not medical advice. Consult a qualified
             healthcare provider before starting or modifying any exercise program.
@@ -89,7 +89,7 @@ function TermsPage() {
           <p>
             You keep ownership of the runs, routes, photos, and comments you create.
             By making content "Public" or "Leaderboard" you grant us a license to
-            display it inside Catch Up to other users.
+            display it inside Own The Run to other users.
           </p>
         </section>
 
@@ -104,7 +104,7 @@ function TermsPage() {
         <section>
           <h2 className="font-display text-xl font-bold">9. Liability</h2>
           <p>
-            To the maximum extent permitted by law, Catch Up is provided "as is"
+            To the maximum extent permitted by law, Own The Run is provided "as is"
             with no warranties. We are not liable for indirect, incidental, or
             consequential damages arising from your use of the service.
           </p>

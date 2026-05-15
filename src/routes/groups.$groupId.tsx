@@ -50,7 +50,7 @@ type Window = "week" | "month" | "year" | "all";
 
 export const Route = createFileRoute("/groups/$groupId")({
   head: () => ({
-    meta: [{ title: "Club — Catch Up" }],
+    meta: [{ title: "Club — Own The Run" }],
   }),
   component: GroupDetailPage,
   errorComponent: ({ error, reset }) => {
