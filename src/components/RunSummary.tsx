@@ -32,17 +32,17 @@ const METERS_PER_KM = 1000;
  * Post-run summary screen with stats, splits, and a shareable
  * 1080x1920 PNG card (Instagram-story aspect) generated client-side.
  */
-export function RunSummary({ coords, distance, elapsed, elevationGain, title }: Props) {
+export function RunSummary({ coords, coordTimes, distance, elapsed, elevationGain, title }: Props) {
   const [busy, setBusy] = useState(false);
+  const [transparent, setTransparent] = useState(false);
   const unit = getUnit();
   const splitDist = unit === "km" ? METERS_PER_KM : METERS_PER_MILE;
   const splitLabel = unit === "km" ? "km" : "mi";
 
-  const splits = useMemo(() => computeSplits(coords, elapsed, splitDist), [
-    coords,
-    elapsed,
-    splitDist,
-  ]);
+  const splits = useMemo(
+    () => computeSplits(coords, coordTimes, elapsed, splitDist),
+    [coords, coordTimes, elapsed, splitDist],
+  );
 
   const handleShare = async () => {
     setBusy(true);
@@ -53,10 +53,12 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
         elapsed,
         elevationGain,
         title: title || "Own The Run",
+        transparent,
       });
       if (!blob) throw new Error("Could not generate share image");
 
-      const file = new File([blob], "otr-run.png", { type: "image/png" });
+      const fileName = transparent ? "otr-run-transparent.png" : "otr-run.png";
+      const file = new File([blob], fileName, { type: "image/png" });
       const navAny = navigator as Navigator & {
         canShare?: (data: { files?: File[] }) => boolean;
       };
@@ -67,11 +69,10 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
           text: `${formatDistance(distance)} • ${formatDuration(elapsed)} • ${formatPace(distance, elapsed)}`,
         });
       } else {
-        // Fallback: download
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "otr-run.png";
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -80,7 +81,6 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Share failed";
-      // User cancelling Web Share throws AbortError — don't surface
       if (!/abort/i.test(msg)) toast.error(msg);
     } finally {
       setBusy(false);
