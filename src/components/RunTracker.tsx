@@ -29,6 +29,7 @@ import { onLocationFix, startTracking, stopTracking, type LocationFix } from "@/
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
+import { RunSummary } from "@/components/RunSummary";
 
 function isNativePlatform(): boolean {
   // @ts-expect-error - Capacitor injects this global on native builds only
