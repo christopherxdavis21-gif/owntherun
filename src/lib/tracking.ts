@@ -151,7 +151,7 @@ export async function startTracking(): Promise<boolean> {
           backgroundTitle: "Own The Run",
           requestPermissions: true,
           stale: false,
-          distanceFilter: 3,
+          distanceFilter: 1,
         },
         (location) => {
           if (!location) return;
