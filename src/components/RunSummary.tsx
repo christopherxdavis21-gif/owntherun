@@ -141,6 +141,22 @@ export function RunSummary({ coords, coordTimes, distance, elapsed, elevationGai
         </div>
       )}
 
+      <div className="flex items-center justify-between rounded-xl border border-border bg-surface/40 p-3">
+        <div>
+          <Label htmlFor="otr-transparent" className="text-xs font-semibold">
+            Transparent background
+          </Label>
+          <p className="text-[11px] text-muted-foreground">
+            Export a clear PNG so you can drop it onto your own story background.
+          </p>
+        </div>
+        <Switch
+          id="otr-transparent"
+          checked={transparent}
+          onCheckedChange={setTransparent}
+        />
+      </div>
+
       <p className="text-[11px] text-muted-foreground">
         Share posts a 1080×1920 image (Instagram-story aspect) with your route and stats.
       </p>
