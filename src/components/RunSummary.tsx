@@ -164,7 +164,12 @@ interface Split {
   barPct: number;
 }
 
-function computeSplits(coords: Coord[], elapsed: number, splitDist: number): Split[] {
+function computeSplits(
+  coords: Coord[],
+  coordTimes: number[] | undefined,
+  elapsed: number,
+  splitDist: number,
+): Split[] {
   if (coords.length < 2 || elapsed <= 0) return [];
 
   // Cumulative distance per fix
@@ -176,35 +181,46 @@ function computeSplits(coords: Coord[], elapsed: number, splitDist: number): Spl
   }
   if (total < splitDist * 0.5) return [];
 
-  const splits: number[] = []; // seconds per split unit
+  // Per-fix elapsed seconds. Prefer real timestamps when available so split
+  // times reflect actual pace at each segment, not a uniform projection.
+  const haveTimes = !!coordTimes && coordTimes.length === coords.length && coordTimes.length > 1;
+  const t0 = haveTimes ? coordTimes![0] : 0;
+  const tLast = haveTimes ? coordTimes![coordTimes!.length - 1] : 0;
+  const tSpan = haveTimes ? Math.max(1, tLast - t0) : 0;
+  const elapsedAt = (i: number): number => {
+    if (haveTimes) {
+      // Scale wall-clock deltas to total elapsed (handles paused time).
+      return ((coordTimes![i] - t0) / tSpan) * elapsed;
+    }
+    return (i / (coords.length - 1)) * elapsed;
+  };
+
+  const splits: number[] = [];
   let prevTime = 0;
   let target = splitDist;
   while (target <= total) {
-    // find first index where cum >= target
     let i = 1;
     while (i < cum.length && cum[i] < target) i++;
     if (i >= cum.length) break;
-    // Linear interpolation across the segment
-    const frac = (target - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
-    const idxFrac = i - 1 + frac;
-    const time = (idxFrac / (cum.length - 1)) * elapsed;
+    const segLen = cum[i] - cum[i - 1] || 1;
+    const frac = (target - cum[i - 1]) / segLen;
+    const tA = elapsedAt(i - 1);
+    const tB = elapsedAt(i);
+    const time = tA + (tB - tA) * frac;
     splits.push(time - prevTime);
     prevTime = time;
     target += splitDist;
   }
 
-  // Trailing partial (only if >25% of a unit)
   const remaining = total - (target - splitDist);
   if (remaining > splitDist * 0.25) {
     const time = elapsed - prevTime;
-    // normalize to per-unit pace
     splits.push(time * (splitDist / remaining));
   }
 
   if (splits.length === 0) return [];
   const max = Math.max(...splits);
   const min = Math.min(...splits);
-  // longer pace (slower) → shorter bar; faster → longer
   return splits.map((s) => ({
     seconds: s,
     barPct:
