@@ -242,6 +242,7 @@ async function renderShareCard(opts: {
   elapsed: number;
   elevationGain: number;
   title: string;
+  transparent?: boolean;
 }): Promise<Blob | null> {
   const W = 1080;
   const H = 1920;
@@ -251,28 +252,32 @@ async function renderShareCard(opts: {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  // Background — deep gradient
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#0a0e0c");
-  bg.addColorStop(1, "#000000");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  if (!opts.transparent) {
+    // Background — deep gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, "#0a0e0c");
+    bg.addColorStop(1, "#000000");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
 
-  // Subtle grid texture
-  ctx.strokeStyle = "rgba(80,255,160,0.04)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 60) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
+    // Subtle grid texture
+    ctx.strokeStyle = "rgba(80,255,160,0.04)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 60) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 60) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
   }
-  for (let y = 0; y < H; y += 60) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
-  }
+  // When transparent, leave the canvas clear so users can drop the PNG over
+  // their own photo / story background and edit freely.
 
   // Header
   ctx.fillStyle = "#a3ffb8";
