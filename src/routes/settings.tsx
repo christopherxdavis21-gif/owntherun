@@ -20,8 +20,8 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Catch Up" },
-      { name: "description", content: "Units, voice guidance, and account settings for Catch Up." },
+      { title: "Settings — Own The Run" },
+      { name: "description", content: "Units, voice guidance, and account settings for Own The Run." },
     ],
   }),
   component: () => (

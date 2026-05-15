@@ -55,6 +55,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   const [elevationGain, setElevationGain] = useState(0); // meters, live from GPS altitude
   const [center, setCenter] = useState<Coord | undefined>(undefined);
   const [permError, setPermError] = useState<string | null>(null);
+  const [trackingSource, setTrackingSource] = useState<"native" | "web" | null>(null);
+  const [lastAccuracy, setLastAccuracy] = useState<number | null>(null);
 
   const watchIdRef = useRef<number | null>(null);
   const lastFixRef = useRef<Coord | null>(null);
@@ -199,17 +201,20 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
   };
 
   // Shared handler for any incoming GPS fix (web or native background plugin).
+  // IMPORTANT: we no longer drop low-accuracy fixes entirely — that was the
+  // root cause of "ran a 5k, only tracked 0.01 mi". Under tree cover or in
+  // urban canyons every single fix can come back with accuracy > 30m, which
+  // meant we threw away the whole run. Now we always record the position
+  // (so the map keeps drawing), and only skip the *distance* increment when
+  // the movement is smaller than the GPS noise floor.
   const handleFix = (
     coord: Coord,
     altitude: number | null,
     altitudeAccuracy: number | null,
     accuracy: number | null,
   ) => {
-    // Filter low-accuracy fixes (> 30m) to reduce GPS jitter inflating distance
-    if (accuracy != null && accuracy > 30) {
-      setCenter(coord);
-      return;
-    }
+    if (accuracy != null) setLastAccuracy(accuracy);
+
     if (
       typeof altitude === "number" &&
       !Number.isNaN(altitude) &&
@@ -226,12 +231,28 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       const last = lastFixRef.current;
       if (last) {
         const d = haversineMeters(last, coord);
-        if (d < 3) return prev;
+        // Minimum movement to register: 1m, OR larger than the GPS noise
+        // floor so we don't accumulate jitter as distance.
+        const noiseFloor = Math.max(1, (accuracy ?? 0) * 0.5);
+        if (d < noiseFloor) {
+          setCenter(coord);
+          return prev;
+        }
         setDistance((cur) => cur + d);
       }
       lastFixRef.current = coord;
       setCenter(coord);
-      return [...prev, coord];
+      const next = [...prev, coord];
+      // Persist live so a crash/kill doesn't lose the whole run
+      try {
+        window.localStorage.setItem(
+          "otr:active-run-coords",
+          JSON.stringify(next.slice(-2000)),
+        );
+      } catch {
+        /* quota or private mode — ignore */
+      }
+      return next;
     });
   };
 
@@ -251,7 +272,10 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           handleFix(fix.coord, fix.altitude, fix.altitudeAccuracy, fix.accuracy);
         });
         const started = await startTracking();
-        if (started) return true;
+        if (started) {
+          setTrackingSource("native");
+          return true;
+        }
         // If native start failed (plugin missing, perm denied), unsubscribe
         // and fall through to the web watcher so the user still gets tracking.
         nativeUnsubRef.current?.();
@@ -281,6 +305,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
     );
+    setTrackingSource("web");
     return true;
   };
 
@@ -366,6 +391,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     setSaveAsRoute(false);
     setRouteName("");
     setVisibility("private");
+    setTrackingSource(null);
+    try { window.localStorage.removeItem("otr:active-run-coords"); } catch { /* ignore */ }
   };
 
   const save = async () => {
@@ -415,6 +442,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
         notes: notes.trim() || null,
       });
       if (runErr) throw runErr;
+
+      try { window.localStorage.removeItem("otr:active-run-coords"); } catch { /* ignore */ }
 
       toast.success(
         visibility === "leaderboard"
@@ -501,13 +530,34 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           )}
 
           {isLive && (
-            <div className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span
-                className={`inline-block h-2 w-2 rounded-full ${
-                  status === "running" ? "animate-pulse bg-primary" : "bg-muted-foreground"
-                }`}
-              />
-              {status === "running" ? "Recording GPS…" : "Paused"}
+            <div className="ml-auto flex flex-col items-end gap-0.5 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    status === "running" ? "animate-pulse bg-primary" : "bg-muted-foreground"
+                  }`}
+                />
+                {status === "running" ? "Recording GPS…" : "Paused"}
+                {trackingSource && (
+                  <span
+                    className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      trackingSource === "native"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-amber-500/15 text-amber-500"
+                    }`}
+                    title={
+                      trackingSource === "native"
+                        ? "Background GPS active — keeps recording with the screen off"
+                        : "Browser GPS — pauses if the screen locks. Install the app for background tracking."
+                    }
+                  >
+                    {trackingSource === "native" ? "Native GPS" : "Browser GPS"}
+                  </span>
+                )}
+              </div>
+              {lastAccuracy != null && (
+                <div className="text-[10px] tabular-nums">±{Math.round(lastAccuracy)}m</div>
+              )}
             </div>
           )}
           {coords.length > 0 && !isLive && (
@@ -620,9 +670,11 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
               </li>
             </ol>
             <div className="rounded-lg border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
-              Tip: keep this tab in the foreground while running. Background GPS
-              isn't supported in the browser. Elevation comes from your device's GPS
-              while running and is refined with terrain data on save.
+              Tip: in the browser, GPS pauses the moment your screen locks — keep
+              the tab in the foreground. For background recording with the screen
+              off, install Own The Run from TestFlight and choose{" "}
+              <span className="font-semibold text-foreground">Always Allow</span>{" "}
+              when iOS asks for location.
             </div>
             {plannedPath && plannedPath.length > 1 && voiceSupported && (
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-foreground">

@@ -10,7 +10,7 @@ import { Trophy as TrophyIcon, Medal as MedalIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/trophies")({
-  head: () => ({ meta: [{ title: "Trophies — Catch Up" }] }),
+  head: () => ({ meta: [{ title: "Trophies — Own The Run" }] }),
   component: TrophiesPage,
 });
 

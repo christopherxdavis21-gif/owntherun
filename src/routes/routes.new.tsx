@@ -18,7 +18,7 @@ type Coord = [number, number];
 export const Route = createFileRoute("/routes/new")({
   head: () => ({
     meta: [
-      { title: "New route — Catch Up" },
+      { title: "New route — Own The Run" },
       { name: "description", content: "Map a new running route by tapping the map." },
     ],
   }),

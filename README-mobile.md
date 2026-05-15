@@ -1,4 +1,4 @@
-# Catch Up — Mobile (iOS / Android via Capacitor)
+# Own The Run — Mobile (iOS / Android via Capacitor)
 
 The iOS/Android apps are **native shells** that load the live deployed
 web app (`https://owntherun.lovable.app`) inside a WebView. The native
@@ -50,7 +50,7 @@ bunx cap open ios
 6. Press the ▶️ Play button
 
 First run on your phone: **Settings → General → VPN & Device Management
-→ trust your developer profile**, then tap the Catch Up icon.
+→ trust your developer profile**, then tap the Own The Run icon.
 
 ## iOS permissions (paste into Info.plist)
 
@@ -59,9 +59,9 @@ In Xcode left sidebar, open `App/App/Info.plist` (right-click → Open As
 
 ```xml
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>Catch Up uses your location to record your run path on the map.</string>
+<string>Own The Run uses your location to record your run path on the map.</string>
 <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>Catch Up keeps recording your run when your phone is locked or the app is in the background.</string>
+<string>Own The Run keeps recording your run when your phone is locked or the app is in the background.</string>
 <key>UIBackgroundModes</key>
 <array>
   <string>location</string>

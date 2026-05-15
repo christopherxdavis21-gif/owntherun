@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Profile — Catch Up" }] }),
+  head: () => ({ meta: [{ title: "Profile — Own The Run" }] }),
   component: ProfilePage,
 });
 
@@ -412,7 +412,7 @@ function ProfilePage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete your Catch Up account?</AlertDialogTitle>
+                      <AlertDialogTitle>Delete your Own The Run account?</AlertDialogTitle>
                       <AlertDialogDescription>
                         This will permanently remove your profile, runs, routes, trophies, and group
                         memberships. There is no recovery. Type <span className="font-bold text-foreground">DELETE</span> below to confirm.

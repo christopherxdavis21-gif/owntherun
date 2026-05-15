@@ -95,13 +95,23 @@ export function RouteMap({
         data: lineFeature(pathRef.current ?? coordsRef.current),
       });
     }
+    // Soft outer glow for the route — wider, more transparent stroke underneath
+    if (!map.getLayer("route-glow")) {
+      map.addLayer({
+        id: "route-glow",
+        type: "line",
+        source: "route",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#c6f700", "line-width": 12, "line-opacity": 0.18, "line-blur": 4 },
+      });
+    }
     if (!map.getLayer("route-line")) {
       map.addLayer({
         id: "route-line",
         type: "line",
         source: "route",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#c6f700", "line-width": 5, "line-opacity": 0.95 },
+        paint: { "line-color": "#c6f700", "line-width": 4, "line-opacity": 1 },
       });
     }
 
@@ -205,13 +215,31 @@ export function RouteMap({
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
     const coords = coordsRef.current;
-    coords.forEach((c, i) => {
-      const isFirst = i === 0;
-      const isLast = i === coords.length - 1 && coords.length > 1;
-      const el = waypointEl(isFirst, isLast);
-      const marker = new mapboxgl.Marker({ element: el }).setLngLat(c).addTo(map);
-      markersRef.current.push(marker);
-    });
+    if (coords.length === 0) return;
+
+    // In editable mode (route builder), keep small waypoint dots so the user
+    // sees what they're placing. Otherwise, only render Start + Finish pins.
+    if (editable) {
+      coords.forEach((c, i) => {
+        const isFirst = i === 0;
+        const isLast = i === coords.length - 1 && coords.length > 1;
+        const el = waypointEl(isFirst, isLast);
+        const marker = new mapboxgl.Marker({ element: el }).setLngLat(c).addTo(map);
+        markersRef.current.push(marker);
+      });
+      return;
+    }
+
+    const start = coords[0];
+    markersRef.current.push(
+      new mapboxgl.Marker({ element: endpointEl("start") }).setLngLat(start).addTo(map),
+    );
+    if (coords.length > 1) {
+      const finish = coords[coords.length - 1];
+      markersRef.current.push(
+        new mapboxgl.Marker({ element: endpointEl("finish") }).setLngLat(finish).addTo(map),
+      );
+    }
   }
 
   function renderPins(map: mapboxgl.Map) {
@@ -380,12 +408,41 @@ function lineFeature(coords: Coord[]): GeoJSON.Feature<GeoJSON.LineString> {
 
 function waypointEl(isFirst: boolean, isLast: boolean) {
   const el = document.createElement("div");
-  el.style.width = isFirst || isLast ? "16px" : "10px";
-  el.style.height = isFirst || isLast ? "16px" : "10px";
+  el.style.width = isFirst || isLast ? "14px" : "8px";
+  el.style.height = isFirst || isLast ? "14px" : "8px";
   el.style.borderRadius = "9999px";
   el.style.background = isFirst ? "#c6f700" : isLast ? "#ff7a3d" : "#c6f700";
   el.style.border = "2px solid #0d1117";
   el.style.boxShadow = "0 0 0 1px rgba(255,255,255,0.2)";
+  return el;
+}
+
+function endpointEl(kind: "start" | "finish") {
+  const el = document.createElement("div");
+  el.style.width = "22px";
+  el.style.height = "22px";
+  el.style.borderRadius = "9999px";
+  el.style.display = "flex";
+  el.style.alignItems = "center";
+  el.style.justifyContent = "center";
+  el.style.fontSize = "11px";
+  el.style.fontWeight = "800";
+  el.style.fontFamily = "ui-sans-serif, system-ui, sans-serif";
+  el.style.letterSpacing = "0.02em";
+  el.style.border = "2.5px solid #0d1117";
+  el.style.boxShadow = "0 0 0 2px rgba(255,255,255,0.35), 0 4px 12px rgba(0,0,0,0.5)";
+  if (kind === "start") {
+    el.style.background = "#c6f700";
+    el.style.color = "#0d1117";
+    el.textContent = "S";
+  } else {
+    el.style.background = "#0d1117";
+    el.style.color = "#ffffff";
+    el.style.backgroundImage =
+      "repeating-conic-gradient(#0d1117 0 25%, #ffffff 0 50%)";
+    el.style.backgroundSize = "10px 10px";
+    el.textContent = "";
+  }
   return el;
 }
 

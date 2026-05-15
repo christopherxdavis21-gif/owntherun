@@ -17,13 +17,13 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
-      { title: "Catch Up — Race your friends. Beat your ghost." },
+      { title: "Own The Run — Race your friends. Beat your ghost." },
       {
         name: "description",
         content:
-          "Map running routes, log every run, and climb the leaderboards. Catch Up is the competitive running app for people who love the chase.",
+          "Map running routes, log every run, and climb the leaderboards. Own The Run is the competitive running app for people who love the chase.",
       },
-      { property: "og:title", content: "Catch Up — Race your friends. Beat your ghost." },
+      { property: "og:title", content: "Own The Run — Race your friends. Beat your ghost." },
       {
         property: "og:description",
         content: "Map routes, log runs, and chase the top of every leaderboard.",
@@ -56,7 +56,7 @@ function Landing() {
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary">
             <span className="font-display text-xl font-black text-primary-foreground">C</span>
           </div>
-          <span className="font-display text-xl font-bold tracking-tight">Catch Up</span>
+          <span className="font-display text-xl font-bold tracking-tight">Own The Run</span>
         </div>
         <Link to="/auth">
           <Button variant="ghost" size="sm">

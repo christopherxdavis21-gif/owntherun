@@ -23,7 +23,7 @@ type Profile = { user_id: string; display_name: string; clan_tag: string | null 
 export const Route = createFileRoute("/feed")({
   head: () => ({
     meta: [
-      { title: "Feed — Catch Up" },
+      { title: "Feed — Own The Run" },
       { name: "description", content: "Latest runs from you and the community." },
     ],
   }),

@@ -72,7 +72,7 @@ type Visibility = "private" | "public" | "leaderboard";
 export const Route = createFileRoute("/routes/$routeId")({
   head: () => ({
     meta: [
-      { title: "Route — Catch Up" },
+      { title: "Route — Own The Run" },
       { name: "description", content: "Route details, leaderboard, and run logs." },
     ],
   }),
@@ -244,7 +244,7 @@ function RouteDetailPage() {
     const url = `${window.location.origin}/routes/${route.id}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: route.name, text: `Run ${route.name} on Catch Up`, url });
+        await navigator.share({ title: route.name, text: `Run ${route.name} on Own The Run`, url });
         return;
       } catch {
         // fall through
