@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Share2, Loader2, Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   formatDistance,
   formatDuration,
@@ -15,6 +17,8 @@ type Coord = [number, number];
 
 interface Props {
   coords: Coord[];
+  /** Per-fix epoch ms aligned with `coords`. Used for accurate split timing. */
+  coordTimes?: number[];
   distance: number; // meters
   elapsed: number; // seconds
   elevationGain: number; // meters
