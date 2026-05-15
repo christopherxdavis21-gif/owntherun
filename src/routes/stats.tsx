@@ -47,6 +47,8 @@ type Run = {
   distance_meters: number;
   duration_seconds: number;
   elevation_gain_meters: number;
+  route_id: string | null;
+  visibility: "private" | "public" | "leaderboard";
 };
 
 type Definition = {
