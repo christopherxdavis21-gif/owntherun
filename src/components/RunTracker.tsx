@@ -51,6 +51,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     "idle",
   );
   const [coords, setCoords] = useState<Coord[]>([]);
+  const [coordTimes, setCoordTimes] = useState<number[]>([]);
   const [distance, setDistance] = useState(0); // meters
   const [elapsed, setElapsed] = useState(0); // seconds
   const [elevationGain, setElevationGain] = useState(0); // meters, live from GPS altitude
@@ -228,12 +229,11 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       }
       lastAltRef.current = altitude;
     }
+    const fixTime = Date.now();
     setCoords((prev) => {
       const last = lastFixRef.current;
       if (last) {
         const d = haversineMeters(last, coord);
-        // Minimum movement to register: 1m, OR larger than the GPS noise
-        // floor so we don't accumulate jitter as distance.
         const noiseFloor = Math.max(1, (accuracy ?? 0) * 0.5);
         if (d < noiseFloor) {
           setCenter(coord);
@@ -244,7 +244,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       lastFixRef.current = coord;
       setCenter(coord);
       const next = [...prev, coord];
-      // Persist live so a crash/kill doesn't lose the whole run
+      setCoordTimes((t) => [...t, fixTime]);
       try {
         window.localStorage.setItem(
           "otr:active-run-coords",
@@ -384,6 +384,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     lastFixRef.current = null;
     lastAltRef.current = null;
     setCoords([]);
+    setCoordTimes([]);
     setDistance(0);
     setElapsed(0);
     setElevationGain(0);
@@ -581,6 +582,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           <>
             <RunSummary
               coords={coords}
+              coordTimes={coordTimes}
               distance={distance}
               elapsed={elapsed}
               elevationGain={elevationGain}

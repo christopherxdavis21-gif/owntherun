@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Share2, Loader2, Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   formatDistance,
   formatDuration,
@@ -15,6 +17,8 @@ type Coord = [number, number];
 
 interface Props {
   coords: Coord[];
+  /** Per-fix epoch ms aligned with `coords`. Used for accurate split timing. */
+  coordTimes?: number[];
   distance: number; // meters
   elapsed: number; // seconds
   elevationGain: number; // meters
@@ -28,17 +32,17 @@ const METERS_PER_KM = 1000;
  * Post-run summary screen with stats, splits, and a shareable
  * 1080x1920 PNG card (Instagram-story aspect) generated client-side.
  */
-export function RunSummary({ coords, distance, elapsed, elevationGain, title }: Props) {
+export function RunSummary({ coords, coordTimes, distance, elapsed, elevationGain, title }: Props) {
   const [busy, setBusy] = useState(false);
+  const [transparent, setTransparent] = useState(false);
   const unit = getUnit();
   const splitDist = unit === "km" ? METERS_PER_KM : METERS_PER_MILE;
   const splitLabel = unit === "km" ? "km" : "mi";
 
-  const splits = useMemo(() => computeSplits(coords, elapsed, splitDist), [
-    coords,
-    elapsed,
-    splitDist,
-  ]);
+  const splits = useMemo(
+    () => computeSplits(coords, coordTimes, elapsed, splitDist),
+    [coords, coordTimes, elapsed, splitDist],
+  );
 
   const handleShare = async () => {
     setBusy(true);
@@ -49,10 +53,12 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
         elapsed,
         elevationGain,
         title: title || "Own The Run",
+        transparent,
       });
       if (!blob) throw new Error("Could not generate share image");
 
-      const file = new File([blob], "otr-run.png", { type: "image/png" });
+      const fileName = transparent ? "otr-run-transparent.png" : "otr-run.png";
+      const file = new File([blob], fileName, { type: "image/png" });
       const navAny = navigator as Navigator & {
         canShare?: (data: { files?: File[] }) => boolean;
       };
@@ -63,11 +69,10 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
           text: `${formatDistance(distance)} • ${formatDuration(elapsed)} • ${formatPace(distance, elapsed)}`,
         });
       } else {
-        // Fallback: download
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "otr-run.png";
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -76,7 +81,6 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Share failed";
-      // User cancelling Web Share throws AbortError — don't surface
       if (!/abort/i.test(msg)) toast.error(msg);
     } finally {
       setBusy(false);
@@ -137,6 +141,22 @@ export function RunSummary({ coords, distance, elapsed, elevationGain, title }: 
         </div>
       )}
 
+      <div className="flex items-center justify-between rounded-xl border border-border bg-surface/40 p-3">
+        <div>
+          <Label htmlFor="otr-transparent" className="text-xs font-semibold">
+            Transparent background
+          </Label>
+          <p className="text-[11px] text-muted-foreground">
+            Export a clear PNG so you can drop it onto your own story background.
+          </p>
+        </div>
+        <Switch
+          id="otr-transparent"
+          checked={transparent}
+          onCheckedChange={setTransparent}
+        />
+      </div>
+
       <p className="text-[11px] text-muted-foreground">
         Share posts a 1080×1920 image (Instagram-story aspect) with your route and stats.
       </p>
@@ -160,7 +180,12 @@ interface Split {
   barPct: number;
 }
 
-function computeSplits(coords: Coord[], elapsed: number, splitDist: number): Split[] {
+function computeSplits(
+  coords: Coord[],
+  coordTimes: number[] | undefined,
+  elapsed: number,
+  splitDist: number,
+): Split[] {
   if (coords.length < 2 || elapsed <= 0) return [];
 
   // Cumulative distance per fix
@@ -172,35 +197,46 @@ function computeSplits(coords: Coord[], elapsed: number, splitDist: number): Spl
   }
   if (total < splitDist * 0.5) return [];
 
-  const splits: number[] = []; // seconds per split unit
+  // Per-fix elapsed seconds. Prefer real timestamps when available so split
+  // times reflect actual pace at each segment, not a uniform projection.
+  const haveTimes = !!coordTimes && coordTimes.length === coords.length && coordTimes.length > 1;
+  const t0 = haveTimes ? coordTimes![0] : 0;
+  const tLast = haveTimes ? coordTimes![coordTimes!.length - 1] : 0;
+  const tSpan = haveTimes ? Math.max(1, tLast - t0) : 0;
+  const elapsedAt = (i: number): number => {
+    if (haveTimes) {
+      // Scale wall-clock deltas to total elapsed (handles paused time).
+      return ((coordTimes![i] - t0) / tSpan) * elapsed;
+    }
+    return (i / (coords.length - 1)) * elapsed;
+  };
+
+  const splits: number[] = [];
   let prevTime = 0;
   let target = splitDist;
   while (target <= total) {
-    // find first index where cum >= target
     let i = 1;
     while (i < cum.length && cum[i] < target) i++;
     if (i >= cum.length) break;
-    // Linear interpolation across the segment
-    const frac = (target - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
-    const idxFrac = i - 1 + frac;
-    const time = (idxFrac / (cum.length - 1)) * elapsed;
+    const segLen = cum[i] - cum[i - 1] || 1;
+    const frac = (target - cum[i - 1]) / segLen;
+    const tA = elapsedAt(i - 1);
+    const tB = elapsedAt(i);
+    const time = tA + (tB - tA) * frac;
     splits.push(time - prevTime);
     prevTime = time;
     target += splitDist;
   }
 
-  // Trailing partial (only if >25% of a unit)
   const remaining = total - (target - splitDist);
   if (remaining > splitDist * 0.25) {
     const time = elapsed - prevTime;
-    // normalize to per-unit pace
     splits.push(time * (splitDist / remaining));
   }
 
   if (splits.length === 0) return [];
   const max = Math.max(...splits);
   const min = Math.min(...splits);
-  // longer pace (slower) → shorter bar; faster → longer
   return splits.map((s) => ({
     seconds: s,
     barPct:
@@ -222,6 +258,7 @@ async function renderShareCard(opts: {
   elapsed: number;
   elevationGain: number;
   title: string;
+  transparent?: boolean;
 }): Promise<Blob | null> {
   const W = 1080;
   const H = 1920;
@@ -231,28 +268,32 @@ async function renderShareCard(opts: {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  // Background — deep gradient
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#0a0e0c");
-  bg.addColorStop(1, "#000000");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  if (!opts.transparent) {
+    // Background — deep gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, "#0a0e0c");
+    bg.addColorStop(1, "#000000");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
 
-  // Subtle grid texture
-  ctx.strokeStyle = "rgba(80,255,160,0.04)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 60) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
+    // Subtle grid texture
+    ctx.strokeStyle = "rgba(80,255,160,0.04)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 60) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 60) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
   }
-  for (let y = 0; y < H; y += 60) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
-  }
+  // When transparent, leave the canvas clear so users can drop the PNG over
+  // their own photo / story background and edit freely.
 
   // Header
   ctx.fillStyle = "#a3ffb8";
@@ -269,15 +310,24 @@ async function renderShareCard(opts: {
   });
   ctx.fillText(dateStr, 80, 220);
 
+  // For transparent renders, paint a soft shadow under text/route so it stays
+  // legible against arbitrary photo backgrounds in the user's editor.
+  if (opts.transparent) {
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 2;
+  }
+
   // Route map area
   const mapTop = 280;
   const mapH = 900;
   const mapPad = 80;
 
-  // Card background for map
-  ctx.fillStyle = "rgba(255,255,255,0.03)";
-  roundRect(ctx, 60, mapTop, W - 120, mapH, 32);
-  ctx.fill();
+  if (!opts.transparent) {
+    ctx.fillStyle = "rgba(255,255,255,0.03)";
+    roundRect(ctx, 60, mapTop, W - 120, mapH, 32);
+    ctx.fill();
+  }
 
   drawRoute(ctx, opts.coords, 60 + mapPad, mapTop + mapPad, W - 120 - mapPad * 2, mapH - mapPad * 2);
 
@@ -294,11 +344,13 @@ async function renderShareCard(opts: {
   stats.forEach((s, i) => {
     const x = 60 + (i % 2) * cellW;
     const y = statsTop + Math.floor(i / 2) * cellH;
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    roundRect(ctx, x + 10, y + 10, cellW - 20, cellH - 20, 24);
-    ctx.fill();
+    if (!opts.transparent) {
+      ctx.fillStyle = "rgba(255,255,255,0.03)";
+      roundRect(ctx, x + 10, y + 10, cellW - 20, cellH - 20, 24);
+      ctx.fill();
+    }
 
-    ctx.fillStyle = "#7c8a82";
+    ctx.fillStyle = opts.transparent ? "#e8ffe8" : "#7c8a82";
     ctx.font = "600 24px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(s[0], x + 40, y + 70);
@@ -309,7 +361,7 @@ async function renderShareCard(opts: {
   });
 
   // Footer watermark
-  ctx.fillStyle = "rgba(163,255,184,0.6)";
+  ctx.fillStyle = "rgba(163,255,184,0.85)";
   ctx.font = "700 28px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("owntherun.app", W / 2, H - 80);
