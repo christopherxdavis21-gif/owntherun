@@ -391,6 +391,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     setSaveAsRoute(false);
     setRouteName("");
     setVisibility("private");
+    setTrackingSource(null);
+    try { window.localStorage.removeItem("otr:active-run-coords"); } catch { /* ignore */ }
   };
 
   const save = async () => {
