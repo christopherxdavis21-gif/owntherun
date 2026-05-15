@@ -579,6 +579,14 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       <aside className="space-y-4 rounded-2xl border border-border bg-card p-5">
         {status === "stopped" ? (
           <>
+            <RunSummary
+              coords={coords}
+              distance={distance}
+              elapsed={elapsed}
+              elevationGain={elevationGain}
+              title={routeName}
+            />
+
             <div>
               <h2 className="font-display text-lg font-bold">Save your run</h2>
               <p className="mt-1 text-xs text-muted-foreground">
