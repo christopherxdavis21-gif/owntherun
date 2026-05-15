@@ -294,15 +294,24 @@ async function renderShareCard(opts: {
   });
   ctx.fillText(dateStr, 80, 220);
 
+  // For transparent renders, paint a soft shadow under text/route so it stays
+  // legible against arbitrary photo backgrounds in the user's editor.
+  if (opts.transparent) {
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 2;
+  }
+
   // Route map area
   const mapTop = 280;
   const mapH = 900;
   const mapPad = 80;
 
-  // Card background for map
-  ctx.fillStyle = "rgba(255,255,255,0.03)";
-  roundRect(ctx, 60, mapTop, W - 120, mapH, 32);
-  ctx.fill();
+  if (!opts.transparent) {
+    ctx.fillStyle = "rgba(255,255,255,0.03)";
+    roundRect(ctx, 60, mapTop, W - 120, mapH, 32);
+    ctx.fill();
+  }
 
   drawRoute(ctx, opts.coords, 60 + mapPad, mapTop + mapPad, W - 120 - mapPad * 2, mapH - mapPad * 2);
 
@@ -319,11 +328,13 @@ async function renderShareCard(opts: {
   stats.forEach((s, i) => {
     const x = 60 + (i % 2) * cellW;
     const y = statsTop + Math.floor(i / 2) * cellH;
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    roundRect(ctx, x + 10, y + 10, cellW - 20, cellH - 20, 24);
-    ctx.fill();
+    if (!opts.transparent) {
+      ctx.fillStyle = "rgba(255,255,255,0.03)";
+      roundRect(ctx, x + 10, y + 10, cellW - 20, cellH - 20, 24);
+      ctx.fill();
+    }
 
-    ctx.fillStyle = "#7c8a82";
+    ctx.fillStyle = opts.transparent ? "#e8ffe8" : "#7c8a82";
     ctx.font = "600 24px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(s[0], x + 40, y + 70);
@@ -334,7 +345,7 @@ async function renderShareCard(opts: {
   });
 
   // Footer watermark
-  ctx.fillStyle = "rgba(163,255,184,0.6)";
+  ctx.fillStyle = "rgba(163,255,184,0.85)";
   ctx.font = "700 28px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("owntherun.app", W / 2, H - 80);
