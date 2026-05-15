@@ -51,6 +51,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     "idle",
   );
   const [coords, setCoords] = useState<Coord[]>([]);
+  const [coordTimes, setCoordTimes] = useState<number[]>([]);
   const [distance, setDistance] = useState(0); // meters
   const [elapsed, setElapsed] = useState(0); // seconds
   const [elevationGain, setElevationGain] = useState(0); // meters, live from GPS altitude
