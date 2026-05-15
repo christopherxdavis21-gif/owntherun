@@ -84,7 +84,7 @@ function StatsPage() {
         supabase.from("user_stats").select("*").eq("user_id", user.id).maybeSingle(),
         supabase
           .from("runs")
-          .select("id, ran_at, distance_meters, duration_seconds, elevation_gain_meters")
+          .select("id, ran_at, distance_meters, duration_seconds, elevation_gain_meters, route_id, visibility")
           .eq("user_id", user.id)
           .order("ran_at", { ascending: false })
           .limit(500),
