@@ -282,6 +282,74 @@ function StatsPage() {
         </div>
       </div>
 
+      {/* Past runs */}
+      <h2 className="font-display mt-8 text-2xl font-bold">Past runs</h2>
+      {runs.length === 0 ? (
+        <div className="mt-3 rounded-2xl border border-dashed border-border bg-surface/30 p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            No runs yet.{" "}
+            <Link to="/" className="text-primary hover:underline">Start your first run →</Link>
+          </p>
+        </div>
+      ) : (
+        <div className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+          {runs.slice(0, 25).map((r) => {
+            const date = new Date(r.ran_at);
+            const dateStr = date.toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            });
+            const timeStr = date.toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            });
+            const inner = (
+              <div className="flex items-center gap-4 p-4 transition-colors hover:bg-surface/50">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold truncate">{dateStr}</p>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {timeStr}
+                    </span>
+                  </div>
+                  <div className="font-mono-num mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
+                    <span className="text-primary">{formatDistance(r.distance_meters)}</span>
+                    <span>{formatDuration(r.duration_seconds)}</span>
+                    <span>{formatPace(r.distance_meters, r.duration_seconds)}</span>
+                    {Number(r.elevation_gain_meters) > 0 && (
+                      <span>↑ {formatElevation(r.elevation_gain_meters)}</span>
+                    )}
+                  </div>
+                </div>
+                {r.route_id && (
+                  <span className="font-mono-num text-[10px] uppercase tracking-wider text-primary">
+                    View route →
+                  </span>
+                )}
+              </div>
+            );
+            return r.route_id ? (
+              <Link
+                key={r.id}
+                to="/routes/$routeId"
+                params={{ routeId: r.route_id }}
+                className="block"
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={r.id}>{inner}</div>
+            );
+          })}
+          {runs.length > 25 && (
+            <div className="bg-surface/40 p-3 text-center text-xs text-muted-foreground">
+              Showing 25 of {runs.length} runs
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Heatmap */}
       <h2 className="font-display mt-8 text-2xl font-bold">Last 365 days</h2>
       <div className="mt-3 rounded-2xl border border-border bg-card p-4">
