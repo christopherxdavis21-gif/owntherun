@@ -384,6 +384,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
     lastFixRef.current = null;
     lastAltRef.current = null;
     setCoords([]);
+    setCoordTimes([]);
     setDistance(0);
     setElapsed(0);
     setElevationGain(0);
