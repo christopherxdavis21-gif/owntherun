@@ -582,6 +582,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           <>
             <RunSummary
               coords={coords}
+              coordTimes={coordTimes}
               distance={distance}
               elapsed={elapsed}
               elevationGain={elevationGain}
