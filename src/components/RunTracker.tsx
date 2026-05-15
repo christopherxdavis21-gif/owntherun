@@ -443,6 +443,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       });
       if (runErr) throw runErr;
 
+      try { window.localStorage.removeItem("otr:active-run-coords"); } catch { /* ignore */ }
+
       toast.success(
         visibility === "leaderboard"
           ? "Run submitted to the leaderboard"
@@ -528,13 +530,34 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           )}
 
           {isLive && (
-            <div className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span
-                className={`inline-block h-2 w-2 rounded-full ${
-                  status === "running" ? "animate-pulse bg-primary" : "bg-muted-foreground"
-                }`}
-              />
-              {status === "running" ? "Recording GPS…" : "Paused"}
+            <div className="ml-auto flex flex-col items-end gap-0.5 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${
+                    status === "running" ? "animate-pulse bg-primary" : "bg-muted-foreground"
+                  }`}
+                />
+                {status === "running" ? "Recording GPS…" : "Paused"}
+                {trackingSource && (
+                  <span
+                    className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      trackingSource === "native"
+                        ? "bg-primary/15 text-primary"
+                        : "bg-amber-500/15 text-amber-500"
+                    }`}
+                    title={
+                      trackingSource === "native"
+                        ? "Background GPS active — keeps recording with the screen off"
+                        : "Browser GPS — pauses if the screen locks. Install the app for background tracking."
+                    }
+                  >
+                    {trackingSource === "native" ? "Native GPS" : "Browser GPS"}
+                  </span>
+                )}
+              </div>
+              {lastAccuracy != null && (
+                <div className="text-[10px] tabular-nums">±{Math.round(lastAccuracy)}m</div>
+              )}
             </div>
           )}
           {coords.length > 0 && !isLive && (
@@ -647,9 +670,11 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
               </li>
             </ol>
             <div className="rounded-lg border border-border bg-surface/50 p-3 text-xs text-muted-foreground">
-              Tip: keep this tab in the foreground while running. Background GPS
-              isn't supported in the browser. Elevation comes from your device's GPS
-              while running and is refined with terrain data on save.
+              Tip: in the browser, GPS pauses the moment your screen locks — keep
+              the tab in the foreground. For background recording with the screen
+              off, install Own The Run from TestFlight and choose{" "}
+              <span className="font-semibold text-foreground">Always Allow</span>{" "}
+              when iOS asks for location.
             </div>
             {plannedPath && plannedPath.length > 1 && voiceSupported && (
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-foreground">
