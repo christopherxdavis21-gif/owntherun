@@ -272,7 +272,10 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
           handleFix(fix.coord, fix.altitude, fix.altitudeAccuracy, fix.accuracy);
         });
         const started = await startTracking();
-        if (started) return true;
+        if (started) {
+          setTrackingSource("native");
+          return true;
+        }
         // If native start failed (plugin missing, perm denied), unsubscribe
         // and fall through to the web watcher so the user still gets tracking.
         nativeUnsubRef.current?.();
@@ -302,6 +305,7 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
     );
+    setTrackingSource("web");
     return true;
   };
 
