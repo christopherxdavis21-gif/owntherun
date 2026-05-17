@@ -72,7 +72,7 @@ function RunDetailPage() {
       setLoading(true);
       const { data: runData } = await supabase
         .from("runs")
-        .select("id, user_id, route_id, distance_meters, duration_seconds, elevation_gain_meters, notes, ran_at, visibility")
+        .select("id, user_id, route_id, distance_meters, duration_seconds, elevation_gain_meters, notes, ran_at, visibility, coordinates")
         .eq("id", runId)
         .maybeSingle();
       const r = (runData as RunRow | null) ?? null;
