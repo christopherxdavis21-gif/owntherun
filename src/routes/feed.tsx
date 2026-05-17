@@ -356,6 +356,14 @@ function RunCard({
       {run.notes && (
         <p className="border-t border-border bg-surface/20 px-4 py-3 text-sm text-muted-foreground">"{run.notes}"</p>
       )}
+
+      <Link
+        to="/runs/$runId"
+        params={{ runId: run.id }}
+        className="font-mono-num block border-t border-border bg-surface/30 px-4 py-2.5 text-center text-[11px] uppercase tracking-wider text-primary hover:bg-surface/60"
+      >
+        View run · Comment · Share →
+      </Link>
     </article>
   );
 }
