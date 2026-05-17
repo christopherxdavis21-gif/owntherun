@@ -38,6 +38,7 @@ type RunRow = {
   notes: string | null;
   ran_at: string;
   visibility: Visibility;
+  coordinates: Coord[] | null;
 };
 type RouteLite = { id: string; name: string; coordinates: Coord[] };
 type Profile = { user_id: string; display_name: string; clan_tag: string | null; avatar_url: string | null };
