@@ -24,7 +24,7 @@ import {
   formatElevation,
 } from "@/lib/format";
 import { toast } from "sonner";
-import { ArrowLeft, Lock, Globe, Trophy, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Lock, Globe, Trophy, Trash2, Loader2, Share2 } from "lucide-react";
 
 type Coord = [number, number];
 type Visibility = "private" | "public" | "leaderboard";
