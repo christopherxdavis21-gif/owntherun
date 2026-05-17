@@ -259,7 +259,7 @@ function RunDetailPage() {
 
       {/* Share carousel — anyone with view access can re-share */}
       {coords.length > 1 && (
-        <div className="mt-4">
+        <div id="share-section" className="mt-4 scroll-mt-20">
           <RunSummary
             coords={coords}
             distance={Number(run.distance_meters)}
