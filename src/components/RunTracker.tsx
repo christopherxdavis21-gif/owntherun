@@ -43,9 +43,11 @@ type Visibility = "private" | "public" | "leaderboard";
 interface RunTrackerProps {
   /** Optional pre-planned route polyline to display as a faint guide line. */
   plannedPath?: Coord[];
+  /** When set, the saved run is attached to this existing route (for leaderboards). */
+  followingRouteId?: string;
 }
 
-export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
+export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = {}) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<"idle" | "running" | "paused" | "stopped">(
     "idle",
