@@ -189,7 +189,7 @@ function RunDetailPage() {
       {/* Map */}
       {coords.length > 1 && (
         <div className="mt-4 h-64 overflow-hidden rounded-2xl border border-border">
-          <RouteMap coordinates={coords} interactive={false} />
+          <RouteMap coordinates={coords} showViewControls={false} />
         </div>
       )}
 
