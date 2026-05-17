@@ -142,14 +142,18 @@ export function RouteMap({
     apply3d(map, is3d);
   };
 
-  // Initialize map once token arrives
+  // Initialize map once token AND a real center are available.
+  // We intentionally do NOT fall back to a hardcoded city — showing the wrong
+  // location and then snapping is worse than a brief loading state.
   useEffect(() => {
     if (!token || !mapContainer.current || mapRef.current) return;
 
-    mapboxgl.accessToken = token;
+    const resolvedCenter: Coord | undefined =
+      initialCenter ?? (coordinates[0] as Coord | undefined);
+    if (!resolvedCenter) return; // wait for geolocation / route data
 
-    const center: Coord =
-      initialCenter ?? (coordinates[0] as Coord) ?? [-73.9857, 40.7484];
+    mapboxgl.accessToken = token;
+    const center: Coord = resolvedCenter;
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
@@ -190,7 +194,7 @@ export function RouteMap({
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, initialCenter, coordinates]);
 
   // Switch base style without losing route data/markers
   useEffect(() => {
@@ -324,9 +328,17 @@ export function RouteMap({
     );
   }
 
+  const hasCenter = Boolean(initialCenter ?? coordinates[0]);
+
   return (
     <div className={`relative overflow-hidden rounded-lg border border-border ${className}`}>
       <div ref={mapContainer} className="h-full w-full" />
+
+      {!hasCenter && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-surface/80 text-xs text-muted-foreground backdrop-blur-sm">
+          Locating you…
+        </div>
+      )}
 
       {showViewControls && (
         <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-2">
