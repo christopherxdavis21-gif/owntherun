@@ -43,7 +43,11 @@ const controlListeners = new Set<ControlListener>();
 // Last accepted fix — used by the accuracy / speed gates below.
 let lastAccepted: LocationFix | null = null;
 
-const MAX_ACCURACY_METERS = 60;
+// 40m was 60m — pocket-locked iPhones occasionally fall back to cell-tower
+// fixes in the 40–60m range that look plausible but lurch sideways 30m+
+// between samples, inflating distance. 40m keeps degraded-but-real GPS and
+// drops the cell-tower garbage.
+const MAX_ACCURACY_METERS = 40;
 const MAX_SPEED_MPS = 12; // runner sanity cap — anything faster is a glitch
 
 const NATIVE_MODULES = {
