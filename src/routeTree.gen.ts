@@ -22,6 +22,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoutesIndexRouteImport } from './routes/routes.index'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
+import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
 import { Route as RoutesNewRouteImport } from './routes/routes.new'
 import { Route as RoutesRouteIdRouteImport } from './routes/routes.$routeId'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
@@ -91,6 +92,11 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   path: '/groups/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RunsRunIdRoute = RunsRunIdRouteImport.update({
+  id: '/runs/$runId',
+  path: '/runs/$runId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoutesNewRoute = RoutesNewRouteImport.update({
   id: '/routes/new',
   path: '/routes/new',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
+  '/runs/$runId': typeof RunsRunIdRoute
   '/groups/': typeof GroupsIndexRoute
   '/routes/': typeof RoutesIndexRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
+  '/runs/$runId': typeof RunsRunIdRoute
   '/groups': typeof GroupsIndexRoute
   '/routes': typeof RoutesIndexRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/groups/$groupId': typeof GroupsGroupIdRoute
   '/routes/$routeId': typeof RoutesRouteIdRoute
   '/routes/new': typeof RoutesNewRoute
+  '/runs/$runId': typeof RunsRunIdRoute
   '/groups/': typeof GroupsIndexRoute
   '/routes/': typeof RoutesIndexRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
+    | '/runs/$runId'
     | '/groups/'
     | '/routes/'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
+    | '/runs/$runId'
     | '/groups'
     | '/routes'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/routes/$routeId'
     | '/routes/new'
+    | '/runs/$runId'
     | '/groups/'
     | '/routes/'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   GroupsGroupIdRoute: typeof GroupsGroupIdRoute
   RoutesRouteIdRoute: typeof RoutesRouteIdRoute
   RoutesNewRoute: typeof RoutesNewRoute
+  RunsRunIdRoute: typeof RunsRunIdRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
   RoutesIndexRoute: typeof RoutesIndexRoute
 }
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/runs/$runId': {
+      id: '/runs/$runId'
+      path: '/runs/$runId'
+      fullPath: '/runs/$runId'
+      preLoaderRoute: typeof RunsRunIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/routes/new': {
       id: '/routes/new'
       path: '/routes/new'
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   GroupsGroupIdRoute: GroupsGroupIdRoute,
   RoutesRouteIdRoute: RoutesRouteIdRoute,
   RoutesNewRoute: RoutesNewRoute,
+  RunsRunIdRoute: RunsRunIdRoute,
   GroupsIndexRoute: GroupsIndexRoute,
   RoutesIndexRoute: RoutesIndexRoute,
 }
