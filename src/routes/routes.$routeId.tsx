@@ -383,6 +383,15 @@ function RouteDetailPage() {
                         >
                           <MessageCircle className="h-4 w-4" />
                         </button>
+                        <Link
+                          to="/runs/$runId"
+                          params={{ runId: r.id }}
+                          className="text-muted-foreground hover:text-primary"
+                          aria-label="View & share run"
+                          title="View & share"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Link>
                       </div>
                     </div>
 
