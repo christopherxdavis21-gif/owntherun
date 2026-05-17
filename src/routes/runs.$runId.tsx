@@ -24,7 +24,7 @@ import {
   formatElevation,
 } from "@/lib/format";
 import { toast } from "sonner";
-import { ArrowLeft, Lock, Globe, Trophy, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Lock, Globe, Trophy, Trash2, Loader2, Share2 } from "lucide-react";
 
 type Coord = [number, number];
 type Visibility = "private" | "public" | "leaderboard";
@@ -38,6 +38,7 @@ type RunRow = {
   notes: string | null;
   ran_at: string;
   visibility: Visibility;
+  coordinates: Coord[] | null;
 };
 type RouteLite = { id: string; name: string; coordinates: Coord[] };
 type Profile = { user_id: string; display_name: string; clan_tag: string | null; avatar_url: string | null };
@@ -71,7 +72,7 @@ function RunDetailPage() {
       setLoading(true);
       const { data: runData } = await supabase
         .from("runs")
-        .select("id, user_id, route_id, distance_meters, duration_seconds, elevation_gain_meters, notes, ran_at, visibility")
+        .select("id, user_id, route_id, distance_meters, duration_seconds, elevation_gain_meters, notes, ran_at, visibility, coordinates")
         .eq("id", runId)
         .maybeSingle();
       const r = (runData as RunRow | null) ?? null;
@@ -142,7 +143,13 @@ function RunDetailPage() {
     );
   }
 
-  const coords: Coord[] = route?.coordinates ?? [];
+  const coords: Coord[] =
+    (Array.isArray(run.coordinates) && run.coordinates.length > 1
+      ? (run.coordinates as Coord[])
+      : route?.coordinates) ?? [];
+  const scrollToShare = () => {
+    document.getElementById("share-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const dateStr = new Date(run.ran_at).toLocaleString(undefined, {
     weekday: "short",
     month: "short",
@@ -187,10 +194,22 @@ function RunDetailPage() {
       </div>
 
       {/* Map */}
-      {coords.length > 1 && (
+      {coords.length > 1 ? (
         <div className="mt-4 h-64 overflow-hidden rounded-2xl border border-border">
           <RouteMap coordinates={coords} showViewControls={false} />
         </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-dashed border-border bg-surface/30 p-6 text-center text-xs text-muted-foreground">
+          No GPS track was saved for this run.
+        </div>
+      )}
+
+      {/* Share CTA — opens native share sheet (Instagram, Messages, Twitter, etc.) */}
+      {coords.length > 1 && (
+        <Button onClick={scrollToShare} className="mt-3 w-full gap-2" size="lg">
+          <Share2 className="h-4 w-4" />
+          Share this run
+        </Button>
       )}
 
       {/* Owner editing */}
@@ -240,7 +259,7 @@ function RunDetailPage() {
 
       {/* Share carousel — anyone with view access can re-share */}
       {coords.length > 1 && (
-        <div className="mt-4">
+        <div id="share-section" className="mt-4 scroll-mt-20">
           <RunSummary
             coords={coords}
             distance={Number(run.distance_meters)}

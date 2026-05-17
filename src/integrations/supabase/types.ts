@@ -347,6 +347,7 @@ export type Database = {
       }
       runs: {
         Row: {
+          coordinates: Json | null
           created_at: string
           distance_meters: number
           duration_seconds: number
@@ -359,6 +360,7 @@ export type Database = {
           visibility: Database["public"]["Enums"]["run_visibility"]
         }
         Insert: {
+          coordinates?: Json | null
           created_at?: string
           distance_meters: number
           duration_seconds: number
@@ -371,6 +373,7 @@ export type Database = {
           visibility?: Database["public"]["Enums"]["run_visibility"]
         }
         Update: {
+          coordinates?: Json | null
           created_at?: string
           distance_meters?: number
           duration_seconds?: number
