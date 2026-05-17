@@ -155,52 +155,7 @@ function RouteDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId]);
 
-  const logRun = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!route || !userId) return;
-    const seconds = parseDuration(duration);
-    if (seconds <= 0) return toast.error("Enter a valid time like 24:30");
-    if (visibility === "leaderboard" && !isVerified) {
-      return toast.error("Verify your account in your profile to submit to leaderboards");
-    }
-    setLogging(true);
-    try {
-      // Compute elevation for public/leaderboard submissions
-      let elevation = 0;
-      if (visibility !== "private" && route.coordinates?.length > 1) {
-        try {
-          const res = await computeElevationGain({ data: { coordinates: route.coordinates } });
-          elevation = res.elevation_gain_meters;
-        } catch {
-          // Non-fatal — keep 0
-        }
-      }
-      const { error } = await supabase.from("runs").insert({
-        user_id: userId,
-        route_id: route.id,
-        duration_seconds: seconds,
-        distance_meters: route.distance_meters,
-        elevation_gain_meters: elevation,
-        notes: notes.trim() || null,
-        visibility,
-      });
-      if (error) throw error;
-      toast.success(
-        visibility === "leaderboard"
-          ? "Run submitted. Climb the board."
-          : visibility === "public"
-          ? "Run shared publicly."
-          : "Run saved privately.",
-      );
-      setDuration("");
-      setNotes("");
-      void reload();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to log run");
-    } finally {
-      setLogging(false);
-    }
-  };
+
 
   const deleteRoute = async () => {
     if (!route || !userId || route.user_id !== userId) return;
