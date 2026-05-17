@@ -86,11 +86,8 @@ function RouteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
 
-  // Run-log form
-  const [duration, setDuration] = useState("");
-  const [notes, setNotes] = useState("");
-  const [visibility, setVisibility] = useState<Visibility>("private");
-  const [logging, setLogging] = useState(false);
+  // Run tracker dialog
+  const [trackerOpen, setTrackerOpen] = useState(false);
 
   // Comments view
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
