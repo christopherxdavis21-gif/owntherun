@@ -25,7 +25,16 @@ import { computeElevationGain } from "@/lib/mapbox.functions";
 import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
 import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
-import { onLocationFix, startTracking, stopTracking, type LocationFix } from "@/lib/tracking";
+import {
+  onLocationFix,
+  onLockScreenControl,
+  startTracking,
+  stopTracking,
+  registerLockScreenControls,
+  updateLockScreenStats,
+  clearLockScreenStats,
+  type LocationFix,
+} from "@/lib/tracking";
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
