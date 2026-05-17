@@ -142,14 +142,18 @@ export function RouteMap({
     apply3d(map, is3d);
   };
 
-  // Initialize map once token arrives
+  // Initialize map once token AND a real center are available.
+  // We intentionally do NOT fall back to a hardcoded city — showing the wrong
+  // location and then snapping is worse than a brief loading state.
   useEffect(() => {
     if (!token || !mapContainer.current || mapRef.current) return;
 
-    mapboxgl.accessToken = token;
+    const resolvedCenter: Coord | undefined =
+      initialCenter ?? (coordinates[0] as Coord | undefined);
+    if (!resolvedCenter) return; // wait for geolocation / route data
 
-    const center: Coord =
-      initialCenter ?? (coordinates[0] as Coord) ?? [-73.9857, 40.7484];
+    mapboxgl.accessToken = token;
+    const center: Coord = resolvedCenter;
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
