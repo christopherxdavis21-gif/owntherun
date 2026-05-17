@@ -491,6 +491,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
         elevation_gain_meters: finalElev,
         visibility,
         notes: notes.trim() || null,
+        coordinates: coords,
       });
       if (runErr) throw runErr;
 
