@@ -328,9 +328,17 @@ export function RouteMap({
     );
   }
 
+  const hasCenter = Boolean(initialCenter ?? coordinates[0]);
+
   return (
     <div className={`relative overflow-hidden rounded-lg border border-border ${className}`}>
       <div ref={mapContainer} className="h-full w-full" />
+
+      {!hasCenter && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-surface/80 text-xs text-muted-foreground backdrop-blur-sm">
+          Locating you…
+        </div>
+      )}
 
       {showViewControls && (
         <div className="pointer-events-none absolute bottom-3 left-3 z-10 flex flex-col gap-2">
