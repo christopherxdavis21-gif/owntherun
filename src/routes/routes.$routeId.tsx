@@ -63,7 +63,7 @@ type CommentRow = {
   created_at: string;
 };
 
-type Visibility = "private" | "public" | "leaderboard";
+
 
 export const Route = createFileRoute("/routes/$routeId")({
   head: () => ({
