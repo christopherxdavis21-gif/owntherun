@@ -194,7 +194,7 @@ export function RouteMap({
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, initialCenter, coordinates]);
 
   // Switch base style without losing route data/markers
   useEffect(() => {
