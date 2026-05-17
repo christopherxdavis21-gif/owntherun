@@ -194,10 +194,22 @@ function RunDetailPage() {
       </div>
 
       {/* Map */}
-      {coords.length > 1 && (
+      {coords.length > 1 ? (
         <div className="mt-4 h-64 overflow-hidden rounded-2xl border border-border">
           <RouteMap coordinates={coords} showViewControls={false} />
         </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-dashed border-border bg-surface/30 p-6 text-center text-xs text-muted-foreground">
+          No GPS track was saved for this run.
+        </div>
+      )}
+
+      {/* Share CTA — opens native share sheet (Instagram, Messages, Twitter, etc.) */}
+      {coords.length > 1 && (
+        <Button onClick={scrollToShare} className="mt-3 w-full gap-2" size="lg">
+          <Share2 className="h-4 w-4" />
+          Share this run
+        </Button>
       )}
 
       {/* Owner editing */}
