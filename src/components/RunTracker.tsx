@@ -167,6 +167,44 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [status]);
 
+  // Register lock-screen action handlers once. Subscribe so Pause/Resume/Stop
+  // taps on the lock-screen notification drive the same state machine as
+  // the in-app buttons.
+  useEffect(() => {
+    void registerLockScreenControls();
+    const unsub = onLockScreenControl((event) => {
+      if (event === "pause" && status === "running") handlePause();
+      else if (event === "resume" && status === "paused") void handleResume();
+      else if (event === "stop" && (status === "running" || status === "paused")) handleStop();
+    });
+    return () => {
+      unsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  // Push live stats to the lock-screen notification ~ every 3s while active.
+  useEffect(() => {
+    if (status !== "running" && status !== "paused") {
+      void clearLockScreenStats();
+      return;
+    }
+    const push = () => {
+      const paceSecPerMile =
+        distance > 0 ? (elapsed / distance) * 1609.344 : 0;
+      void updateLockScreenStats({
+        distanceMeters: distance,
+        elapsedSeconds: elapsed,
+        paceSecondsPerMile: paceSecPerMile,
+        elevationMeters: elevationGain,
+        status: status === "running" ? "running" : "paused",
+      });
+    };
+    push();
+    const id = setInterval(push, 3000);
+    return () => clearInterval(id);
+  }, [status, distance, elapsed, elevationGain]);
+
   async function requestWakeLock() {
     try {
       const navAny = navigator as Navigator & {
