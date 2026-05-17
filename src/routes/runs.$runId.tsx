@@ -143,7 +143,13 @@ function RunDetailPage() {
     );
   }
 
-  const coords: Coord[] = route?.coordinates ?? [];
+  const coords: Coord[] =
+    (Array.isArray(run.coordinates) && run.coordinates.length > 1
+      ? (run.coordinates as Coord[])
+      : route?.coordinates) ?? [];
+  const scrollToShare = () => {
+    document.getElementById("share-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const dateStr = new Date(run.ran_at).toLocaleString(undefined, {
     weekday: "short",
     month: "short",
