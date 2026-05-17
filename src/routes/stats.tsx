@@ -322,24 +322,20 @@ function StatsPage() {
                     )}
                   </div>
                 </div>
-                {r.route_id && (
-                  <span className="font-mono-num text-[10px] uppercase tracking-wider text-primary">
-                    View route →
-                  </span>
-                )}
+                <span className="font-mono-num text-[10px] uppercase tracking-wider text-primary">
+                  View / share →
+                </span>
               </div>
             );
-            return r.route_id ? (
+            return (
               <Link
                 key={r.id}
-                to="/routes/$routeId"
-                params={{ routeId: r.route_id }}
+                to="/runs/$runId"
+                params={{ runId: r.id }}
                 className="block"
               >
                 {inner}
               </Link>
-            ) : (
-              <div key={r.id}>{inner}</div>
             );
           })}
           {runs.length > 25 && (
