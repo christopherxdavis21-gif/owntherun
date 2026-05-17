@@ -43,9 +43,11 @@ type Visibility = "private" | "public" | "leaderboard";
 interface RunTrackerProps {
   /** Optional pre-planned route polyline to display as a faint guide line. */
   plannedPath?: Coord[];
+  /** When set, the saved run is attached to this existing route (for leaderboards). */
+  followingRouteId?: string;
 }
 
-export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
+export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = {}) {
   const navigate = useNavigate();
   const [status, setStatus] = useState<"idle" | "running" | "paused" | "stopped">(
     "idle",
@@ -415,8 +417,8 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
         // Non-fatal, fall back to live GPS-derived gain
       }
 
-      let routeId: string | null = null;
-      if (saveAsRoute) {
+      let routeId: string | null = followingRouteId ?? null;
+      if (!followingRouteId && saveAsRoute) {
         if (!routeName.trim()) throw new Error("Give the saved route a name");
         const { data: routeRow, error: rErr } = await supabase
           .from("routes")
@@ -624,30 +626,32 @@ export function RunTracker({ plannedPath }: RunTrackerProps = {}) {
               />
             </div>
 
-            <div className="rounded-lg border border-border bg-surface/50 p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium">Save path as a route</div>
-                  <div className="text-xs text-muted-foreground">
-                    Reuse it later or share with others
+            {!followingRouteId && (
+              <div className="rounded-lg border border-border bg-surface/50 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Save path as a route</div>
+                    <div className="text-xs text-muted-foreground">
+                      Reuse it later or share with others
+                    </div>
                   </div>
+                  <Switch checked={saveAsRoute} onCheckedChange={setSaveAsRoute} />
                 </div>
-                <Switch checked={saveAsRoute} onCheckedChange={setSaveAsRoute} />
+                {saveAsRoute && (
+                  <div className="mt-3 space-y-2">
+                    <Input
+                      value={routeName}
+                      onChange={(e) => setRouteName(e.target.value)}
+                      placeholder="Route name"
+                    />
+                    <label className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Public route</span>
+                      <Switch checked={routePublic} onCheckedChange={setRoutePublic} />
+                    </label>
+                  </div>
+                )}
               </div>
-              {saveAsRoute && (
-                <div className="mt-3 space-y-2">
-                  <Input
-                    value={routeName}
-                    onChange={(e) => setRouteName(e.target.value)}
-                    placeholder="Route name"
-                  />
-                  <label className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Public route</span>
-                    <Switch checked={routePublic} onCheckedChange={setRoutePublic} />
-                  </label>
-                </div>
-              )}
-            </div>
+            )}
 
             <Button className="w-full" onClick={save} disabled={saving}>
               {saving ? (

@@ -2,17 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RouteMap } from "@/components/RouteMap";
+import { RunTracker } from "@/components/RunTracker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import {
   formatClanTag,
@@ -20,9 +18,7 @@ import {
   formatDuration,
   formatPace,
   formatElevation,
-  parseDuration,
 } from "@/lib/format";
-import { computeElevationGain } from "@/lib/mapbox.functions";
 import { toast } from "sonner";
 import {
   Trash2,
@@ -33,9 +29,9 @@ import {
   Crown,
   Bookmark,
   Share2,
-  ShieldCheck,
   MessageCircle,
   Send,
+  Play,
 } from "lucide-react";
 
 type Coord = [number, number];
@@ -67,7 +63,7 @@ type CommentRow = {
   created_at: string;
 };
 
-type Visibility = "private" | "public" | "leaderboard";
+
 
 export const Route = createFileRoute("/routes/$routeId")({
   head: () => ({
@@ -90,11 +86,8 @@ function RouteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
 
-  // Run-log form
-  const [duration, setDuration] = useState("");
-  const [notes, setNotes] = useState("");
-  const [visibility, setVisibility] = useState<Visibility>("private");
-  const [logging, setLogging] = useState(false);
+  // Run tracker dialog
+  const [trackerOpen, setTrackerOpen] = useState(false);
 
   // Comments view
   const [openCommentsFor, setOpenCommentsFor] = useState<string | null>(null);
@@ -162,52 +155,7 @@ function RouteDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId]);
 
-  const logRun = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!route || !userId) return;
-    const seconds = parseDuration(duration);
-    if (seconds <= 0) return toast.error("Enter a valid time like 24:30");
-    if (visibility === "leaderboard" && !isVerified) {
-      return toast.error("Verify your account in your profile to submit to leaderboards");
-    }
-    setLogging(true);
-    try {
-      // Compute elevation for public/leaderboard submissions
-      let elevation = 0;
-      if (visibility !== "private" && route.coordinates?.length > 1) {
-        try {
-          const res = await computeElevationGain({ data: { coordinates: route.coordinates } });
-          elevation = res.elevation_gain_meters;
-        } catch {
-          // Non-fatal — keep 0
-        }
-      }
-      const { error } = await supabase.from("runs").insert({
-        user_id: userId,
-        route_id: route.id,
-        duration_seconds: seconds,
-        distance_meters: route.distance_meters,
-        elevation_gain_meters: elevation,
-        notes: notes.trim() || null,
-        visibility,
-      });
-      if (error) throw error;
-      toast.success(
-        visibility === "leaderboard"
-          ? "Run submitted. Climb the board."
-          : visibility === "public"
-          ? "Run shared publicly."
-          : "Run saved privately.",
-      );
-      setDuration("");
-      setNotes("");
-      void reload();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to log run");
-    } finally {
-      setLogging(false);
-    }
-  };
+
 
   const deleteRoute = async () => {
     if (!route || !userId || route.user_id !== userId) return;
@@ -491,62 +439,35 @@ function RouteDetailPage() {
 
         <aside className="h-fit space-y-4 rounded-2xl border border-border bg-card p-5">
           <div>
-            <h3 className="font-display text-xl font-bold">Log a run</h3>
+            <h3 className="font-display text-xl font-bold">Run this route</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose how this run is shared.
+              Start a live GPS-tracked run that follows this path. Your time, distance,
+              and pace are recorded automatically — no manual entry.
             </p>
           </div>
-          <form onSubmit={logRun} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="duration">Time (mm:ss or hh:mm:ss)</Label>
-              <Input
-                id="duration"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="24:30"
-                className="font-mono-num"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Visibility</Label>
-              <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="private">Private — just for me</SelectItem>
-                  <SelectItem value="public">Public — share on profile</SelectItem>
-                  <SelectItem value="leaderboard" disabled={!isVerified}>
-                    Submit to leaderboard {!isVerified && "(verify first)"}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {visibility === "leaderboard" && (
-                <p className="flex items-center gap-1 text-xs text-primary">
-                  <ShieldCheck className="h-3 w-3" /> Verified submission
-                </p>
-              )}
-              {!isVerified && (
-                <Link to="/profile" className="text-xs text-primary hover:underline">
-                  Verify your account →
-                </Link>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes (optional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Felt strong on the second half."
-                rows={2}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={logging}>
-              {logging ? "Saving…" : "Log run"}
-            </Button>
-          </form>
+          <Button
+            className="w-full gap-2"
+            size="lg"
+            onClick={() => setTrackerOpen(true)}
+          >
+            <Play className="h-4 w-4" /> Start run
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Runs only count after you finish them with live tracking.
+          </p>
         </aside>
       </div>
+
+      <Dialog open={trackerOpen} onOpenChange={setTrackerOpen}>
+        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              Running {route.name}
+            </DialogTitle>
+          </DialogHeader>
+          <RunTracker plannedPath={route.coordinates} followingRouteId={route.id} />
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
