@@ -283,7 +283,12 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       const last = lastFixRef.current;
       if (last) {
         const d = haversineMeters(last, coord);
-        const noiseFloor = Math.max(1, (accuracy ?? 0) * 0.5);
+        // Stricter noise floor: require movement > max(5m, 0.75 * accuracy).
+        // Pocket-locked iPhones routinely report 15–30m accuracy with 8–12m
+        // of random jitter between samples — that jitter was being counted
+        // as real distance. The 0.75 multiplier kills it without hurting
+        // genuine slow-running fixes.
+        const noiseFloor = Math.max(5, (accuracy ?? 0) * 0.75);
         if (d < noiseFloor) {
           setCenter(coord);
           return prev;
