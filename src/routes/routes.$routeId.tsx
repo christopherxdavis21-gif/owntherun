@@ -2,17 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { RouteMap } from "@/components/RouteMap";
+import { RunTracker } from "@/components/RunTracker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import {
   formatClanTag,
@@ -20,9 +18,7 @@ import {
   formatDuration,
   formatPace,
   formatElevation,
-  parseDuration,
 } from "@/lib/format";
-import { computeElevationGain } from "@/lib/mapbox.functions";
 import { toast } from "sonner";
 import {
   Trash2,
@@ -33,9 +29,9 @@ import {
   Crown,
   Bookmark,
   Share2,
-  ShieldCheck,
   MessageCircle,
   Send,
+  Play,
 } from "lucide-react";
 
 type Coord = [number, number];
