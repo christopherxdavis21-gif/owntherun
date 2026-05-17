@@ -439,62 +439,35 @@ function RouteDetailPage() {
 
         <aside className="h-fit space-y-4 rounded-2xl border border-border bg-card p-5">
           <div>
-            <h3 className="font-display text-xl font-bold">Log a run</h3>
+            <h3 className="font-display text-xl font-bold">Run this route</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose how this run is shared.
+              Start a live GPS-tracked run that follows this path. Your time, distance,
+              and pace are recorded automatically — no manual entry.
             </p>
           </div>
-          <form onSubmit={logRun} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="duration">Time (mm:ss or hh:mm:ss)</Label>
-              <Input
-                id="duration"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="24:30"
-                className="font-mono-num"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Visibility</Label>
-              <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="private">Private — just for me</SelectItem>
-                  <SelectItem value="public">Public — share on profile</SelectItem>
-                  <SelectItem value="leaderboard" disabled={!isVerified}>
-                    Submit to leaderboard {!isVerified && "(verify first)"}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {visibility === "leaderboard" && (
-                <p className="flex items-center gap-1 text-xs text-primary">
-                  <ShieldCheck className="h-3 w-3" /> Verified submission
-                </p>
-              )}
-              {!isVerified && (
-                <Link to="/profile" className="text-xs text-primary hover:underline">
-                  Verify your account →
-                </Link>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes (optional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Felt strong on the second half."
-                rows={2}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={logging}>
-              {logging ? "Saving…" : "Log run"}
-            </Button>
-          </form>
+          <Button
+            className="w-full gap-2"
+            size="lg"
+            onClick={() => setTrackerOpen(true)}
+          >
+            <Play className="h-4 w-4" /> Start run
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Runs only count after you finish them with live tracking.
+          </p>
         </aside>
       </div>
+
+      <Dialog open={trackerOpen} onOpenChange={setTrackerOpen}>
+        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              Running {route.name}
+            </DialogTitle>
+          </DialogHeader>
+          <RunTracker plannedPath={route.coordinates} followingRouteId={route.id} />
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
