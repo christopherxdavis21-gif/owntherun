@@ -417,8 +417,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
         // Non-fatal, fall back to live GPS-derived gain
       }
 
-      let routeId: string | null = null;
-      if (saveAsRoute) {
+      let routeId: string | null = followingRouteId ?? null;
+      if (!followingRouteId && saveAsRoute) {
         if (!routeName.trim()) throw new Error("Give the saved route a name");
         const { data: routeRow, error: rErr } = await supabase
           .from("routes")
