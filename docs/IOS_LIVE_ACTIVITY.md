@@ -159,12 +159,6 @@ Three Swift files ship in the repo folder **`ios-live-activity/`**:
 
 ## TL;DR
 
-For the immediate user complaint ("can't see/control my run from the
-lock screen, GPS deviates when locked"):
-
-- Add the **Info.plist** keys in step 1.
-- Add the **Background Modes** capability in step 2.
-- Rebuild + push to TestFlight.
-
-That's it — no Swift required, no Live Activity extension required.
-The Dynamic Island version is a nice-to-have you can add later.
+1. Info.plist keys (step 1) + Background Modes capability (step 2) → background GPS.
+2. Widget Extension + the three Swift files in `ios-live-activity/` (step 4) → Dynamic Island pill.
+3. Clean, archive, upload to TestFlight.
