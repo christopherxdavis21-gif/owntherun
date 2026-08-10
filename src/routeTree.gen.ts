@@ -9,73 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TrophiesRouteImport } from './routes/trophies'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as StatsRouteImport } from './routes/stats'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
-import { Route as FeedRouteImport } from './routes/feed'
-import { Route as ChallengesRouteImport } from './routes/challenges'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as RoutesIndexRouteImport } from './routes/routes.index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ChallengesRouteImport } from './routes/challenges'
+import { Route as FeedRouteImport } from './routes/feed'
+import { Route as LeaderboardsRouteImport } from './routes/leaderboards'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as StatsRouteImport } from './routes/stats'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TrophiesRouteImport } from './routes/trophies'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
-import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
-import { Route as RoutesNewRouteImport } from './routes/routes.new'
-import { Route as RoutesRouteIdRouteImport } from './routes/routes.$routeId'
 import { Route as GroupsGroupIdRouteImport } from './routes/groups.$groupId'
+import { Route as RoutesIndexRouteImport } from './routes/routes.index'
+import { Route as RoutesRouteIdRouteImport } from './routes/routes.$routeId'
+import { Route as RoutesNewRouteImport } from './routes/routes.new'
+import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
 
-const TrophiesRoute = TrophiesRouteImport.update({
-  id: '/trophies',
-  path: '/trophies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StatsRoute = StatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LeaderboardsRoute = LeaderboardsRouteImport.update({
-  id: '/leaderboards',
-  path: '/leaderboards',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedRoute = FeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChallengesRoute = ChallengesRouteImport.update({
-  id: '/challenges',
-  path: '/challenges',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -83,14 +38,54 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ChallengesRoute = ChallengesRouteImport.update({
+  id: '/challenges',
+  path: '/challenges',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RoutesIndexRoute = RoutesIndexRouteImport.update({
-  id: '/routes/',
-  path: '/routes/',
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeaderboardsRoute = LeaderboardsRouteImport.update({
+  id: '/leaderboards',
+  path: '/leaderboards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrophiesRoute = TrophiesRouteImport.update({
+  id: '/trophies',
+  path: '/trophies',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsIndexRoute = GroupsIndexRouteImport.update({
@@ -98,14 +93,14 @@ const GroupsIndexRoute = GroupsIndexRouteImport.update({
   path: '/groups/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RunsRunIdRoute = RunsRunIdRouteImport.update({
-  id: '/runs/$runId',
-  path: '/runs/$runId',
+const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
+  id: '/groups/$groupId',
+  path: '/groups/$groupId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RoutesNewRoute = RoutesNewRouteImport.update({
-  id: '/routes/new',
-  path: '/routes/new',
+const RoutesIndexRoute = RoutesIndexRouteImport.update({
+  id: '/routes/',
+  path: '/routes/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoutesRouteIdRoute = RoutesRouteIdRouteImport.update({
@@ -113,9 +108,14 @@ const RoutesRouteIdRoute = RoutesRouteIdRouteImport.update({
   path: '/routes/$routeId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GroupsGroupIdRoute = GroupsGroupIdRouteImport.update({
-  id: '/groups/$groupId',
-  path: '/groups/$groupId',
+const RoutesNewRoute = RoutesNewRouteImport.update({
+  id: '/routes/new',
+  path: '/routes/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunsRunIdRoute = RunsRunIdRouteImport.update({
+  id: '/runs/$runId',
+  path: '/runs/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -266,74 +266,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/trophies': {
-      id: '/trophies'
-      path: '/trophies'
-      fullPath: '/trophies'
-      preLoaderRoute: typeof TrophiesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stats': {
-      id: '/stats'
-      path: '/stats'
-      fullPath: '/stats'
-      preLoaderRoute: typeof StatsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/leaderboards': {
-      id: '/leaderboards'
-      path: '/leaderboards'
-      fullPath: '/leaderboards'
-      preLoaderRoute: typeof LeaderboardsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feed': {
-      id: '/feed'
-      path: '/feed'
-      fullPath: '/feed'
-      preLoaderRoute: typeof FeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/challenges': {
-      id: '/challenges'
-      path: '/challenges'
-      fullPath: '/challenges'
-      preLoaderRoute: typeof ChallengesRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -343,18 +280,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/challenges': {
+      id: '/challenges'
+      path: '/challenges'
+      fullPath: '/challenges'
+      preLoaderRoute: typeof ChallengesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/routes/': {
-      id: '/routes/'
-      path: '/routes'
-      fullPath: '/routes/'
-      preLoaderRoute: typeof RoutesIndexRouteImport
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leaderboards': {
+      id: '/leaderboards'
+      path: '/leaderboards'
+      fullPath: '/leaderboards'
+      preLoaderRoute: typeof LeaderboardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trophies': {
+      id: '/trophies'
+      path: '/trophies'
+      fullPath: '/trophies'
+      preLoaderRoute: typeof TrophiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/': {
@@ -364,18 +357,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/runs/$runId': {
-      id: '/runs/$runId'
-      path: '/runs/$runId'
-      fullPath: '/runs/$runId'
-      preLoaderRoute: typeof RunsRunIdRouteImport
+    '/groups/$groupId': {
+      id: '/groups/$groupId'
+      path: '/groups/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof GroupsGroupIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/routes/new': {
-      id: '/routes/new'
-      path: '/routes/new'
-      fullPath: '/routes/new'
-      preLoaderRoute: typeof RoutesNewRouteImport
+    '/routes/': {
+      id: '/routes/'
+      path: '/routes'
+      fullPath: '/routes/'
+      preLoaderRoute: typeof RoutesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/routes/$routeId': {
@@ -385,11 +378,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RoutesRouteIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/$groupId': {
-      id: '/groups/$groupId'
-      path: '/groups/$groupId'
-      fullPath: '/groups/$groupId'
-      preLoaderRoute: typeof GroupsGroupIdRouteImport
+    '/routes/new': {
+      id: '/routes/new'
+      path: '/routes/new'
+      fullPath: '/routes/new'
+      preLoaderRoute: typeof RoutesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runs/$runId': {
+      id: '/runs/$runId'
+      path: '/runs/$runId'
+      fullPath: '/runs/$runId'
+      preLoaderRoute: typeof RunsRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -418,3 +418,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
