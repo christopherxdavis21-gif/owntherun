@@ -127,7 +127,7 @@ function RouteDetailPage() {
       const userIds = Array.from(new Set(runRows.map((x) => x.user_id)));
       if (userIds.length > 0) {
         const { data: profs } = await supabase
-          .from("profiles")
+          .from("public_profiles")
           .select("user_id, display_name, clan_tag")
           .in("user_id", userIds);
         const map: Record<string, { name: string; tag: string | null }> = {};
@@ -219,11 +219,11 @@ function RouteDetailPage() {
 
     // Pull any missing profiles
     const need = list.map((c) => c.user_id).filter((u) => !profiles[u]);
-    if (need.length) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, clan_tag")
-        .in("user_id", need);
+      if (need.length) {
+        const { data: profs } = await supabase
+          .from("public_profiles")
+          .select("user_id, display_name, clan_tag")
+          .in("user_id", need);
       const map: Record<string, { name: string; tag: string | null }> = { ...profiles };
       (profs as Profile[] | null)?.forEach(
         (p) => (map[p.user_id] = { name: p.display_name, tag: p.clan_tag }),

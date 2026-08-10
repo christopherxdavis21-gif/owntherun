@@ -440,7 +440,7 @@ export async function loadHubRoutes(
     const bestUserIds = Array.from(new Set(Array.from(bestByRoute.values()).map((b) => b.user_id)));
     if (bestUserIds.length > 0) {
       const { data: profs } = await supabase
-        .from("profiles")
+        .from("public_profiles")
         .select("user_id, display_name")
         .in("user_id", bestUserIds);
       const profMap = new Map(((profs as Array<{ user_id: string; display_name: string }> | null) ?? []).map((p) => [p.user_id, p.display_name]));
