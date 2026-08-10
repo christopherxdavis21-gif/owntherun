@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrophiesRouteImport } from './routes/trophies'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StatsRouteImport } from './routes/stats'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -40,6 +41,11 @@ const TermsRoute = TermsRouteImport.update({
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
   path: '/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/trophies': typeof TrophiesRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/settings'
+    | '/sitemap.xml'
     | '/stats'
     | '/terms'
     | '/trophies'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/settings'
+    | '/sitemap.xml'
     | '/stats'
     | '/terms'
     | '/trophies'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profile'
     | '/settings'
+    | '/sitemap.xml'
     | '/stats'
     | '/terms'
     | '/trophies'
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StatsRoute: typeof StatsRoute
   TermsRoute: typeof TermsRoute
   TrophiesRoute: typeof TrophiesRoute
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/stats'
       fullPath: '/stats'
       preLoaderRoute: typeof StatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -384,6 +404,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StatsRoute: StatsRoute,
   TermsRoute: TermsRoute,
   TrophiesRoute: TrophiesRoute,
@@ -397,12 +418,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
