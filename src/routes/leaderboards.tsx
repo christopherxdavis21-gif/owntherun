@@ -237,8 +237,6 @@ function LeaderboardsPage() {
     setCategory(v.category);
     setTimeFilter(v.time_filter);
     setDistanceFilter(v.distance_filter ?? "any");
-    setGenderFilter(v.gender_filter ?? "all");
-    setAgeFilter(v.age_filter ?? "all");
   }
 
   async function saveCurrentView() {
@@ -253,8 +251,6 @@ function LeaderboardsPage() {
         category,
         time_filter: timeFilter,
         distance_filter: distanceFilter,
-        gender_filter: genderFilter,
-        age_filter: ageFilter,
       })
       .select("*")
       .single();
