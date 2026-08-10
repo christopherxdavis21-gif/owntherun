@@ -84,7 +84,7 @@ function RunDetailPage() {
           r.route_id
             ? supabase.from("routes").select("id, name, coordinates").eq("id", r.route_id).maybeSingle()
             : Promise.resolve({ data: null }),
-          supabase.from("profiles").select("user_id, display_name, clan_tag, avatar_url").eq("user_id", r.user_id).maybeSingle(),
+          supabase.from("public_profiles").select("user_id, display_name, clan_tag, avatar_url").eq("user_id", r.user_id).maybeSingle(),
         ]);
         setRoute(routeData as unknown as RouteLite | null);
         setProfile(profData as Profile | null);

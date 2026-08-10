@@ -143,7 +143,7 @@ function GroupDetailPage() {
 
     const { data: profs } = userIds.length
       ? await supabase
-          .from("profiles")
+          .from("public_profiles")
           .select("user_id, display_name, clan_tag")
           .in("user_id", userIds)
       : { data: [] };

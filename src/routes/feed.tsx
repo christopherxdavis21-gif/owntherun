@@ -157,7 +157,7 @@ function FeedPage() {
           ? supabase.from("routes").select("id, name, coordinates").in("id", routeIds)
           : Promise.resolve({ data: [] as RouteLite[] }),
         userIds.length
-          ? supabase.from("profiles").select("user_id, display_name, clan_tag, avatar_url").in("user_id", userIds)
+          ? supabase.from("public_profiles").select("user_id, display_name, clan_tag, avatar_url").in("user_id", userIds)
           : Promise.resolve({ data: [] as Profile[] }),
       ]);
 

@@ -274,6 +274,39 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          clan_group_id: string | null
+          clan_tag: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          clan_group_id?: string | null
+          clan_tag?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          clan_group_id?: string | null
+          clan_tag?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       routes: {
         Row: {
           coordinates: Json
@@ -569,10 +602,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      is_group_member: {
-        Args: { _group_id: string; _user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       achievement_category:
