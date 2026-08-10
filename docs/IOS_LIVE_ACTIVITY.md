@@ -27,7 +27,8 @@ Open `ios/App/App/Info.plist` and add these entries inside the top-level
 <array>
   <string>location</string>
   <string>fetch</string>
-  <string>processing</string>
+<!-- Do NOT add "processing": Apple rejects the upload unless you also
+     declare BGTaskSchedulerPermittedIdentifiers. We don't use BGTaskScheduler. -->
 </array>
 
 <!-- Location permission strings (shown in the iOS system prompt) -->
