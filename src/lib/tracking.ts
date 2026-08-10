@@ -10,16 +10,12 @@
  *   screen off, plus `@capacitor/local-notifications` for lock-screen
  *   Pause/Resume/Stop controls and live stats.
  *
- * Accuracy hardening:
- *   - The background-geolocation watcher is configured with a small
- *     `distanceFilter` (5m) so the OS fuses GPS + motion data before
- *     handing us a fix — fewer "phantom turn" spikes when the phone is in
- *     a pocket and the GPS signal goes wobbly.
- *   - We hard-drop any fix with `accuracy > 60m`. Those are almost always
- *     cell-tower fallbacks that cause big lateral jumps.
- *   - A speed sanity check rejects fixes that would imply > 12 m/s (~27 mph)
- *     of travel from the previous fix — i.e. impossible for a runner.
+ * Native plugins are registered through Capacitor's bridge. The background
+ * geolocation package intentionally has no browser JavaScript entry point, so
+ * trying to dynamically import its package name silently fails in a WebView.
  */
+
+import { registerPlugin } from "@capacitor/core";
 
 export type Coord = [number, number];
 
@@ -35,25 +31,12 @@ export type TrackingControlEvent = "pause" | "resume" | "stop";
 
 type Listener = (fix: LocationFix) => void;
 type ControlListener = (event: TrackingControlEvent) => void;
+type ErrorListener = (message: string) => void;
 
 let watcherHandle: { id?: string; webId?: number } | null = null;
 const fixListeners = new Set<Listener>();
 const controlListeners = new Set<ControlListener>();
-
-// Last accepted fix — used by the accuracy / speed gates below.
-let lastAccepted: LocationFix | null = null;
-
-// 40m was 60m — pocket-locked iPhones occasionally fall back to cell-tower
-// fixes in the 40–60m range that look plausible but lurch sideways 30m+
-// between samples, inflating distance. 40m keeps degraded-but-real GPS and
-// drops the cell-tower garbage.
-const MAX_ACCURACY_METERS = 40;
-const MAX_SPEED_MPS = 12; // runner sanity cap — anything faster is a glitch
-
-const NATIVE_MODULES = {
-  backgroundGeolocation: "@capacitor-community/background-geolocation",
-  localNotifications: "@capacitor/local-notifications",
-} as const;
+const errorListeners = new Set<ErrorListener>();
 
 type CapacitorGlobal = {
   isNativePlatform?: () => boolean;
@@ -65,7 +48,12 @@ type NativeLocation = {
   altitude: number | null;
   altitudeAccuracy: number | null;
   accuracy: number | null;
-  time: number;
+  time: number | null;
+};
+
+type NativeLocationError = {
+  code?: string;
+  message?: string;
 };
 
 type BackgroundGeolocationModule = {
@@ -78,9 +66,10 @@ type BackgroundGeolocationModule = {
         stale: boolean;
         distanceFilter: number;
       },
-      callback: (location: NativeLocation | null) => void,
+      callback: (location?: NativeLocation, error?: NativeLocationError) => void,
     ) => Promise<string>;
     removeWatcher: (options: { id: string }) => Promise<void>;
+    openSettings: () => Promise<void>;
   };
 };
 
@@ -113,6 +102,13 @@ type LocalNotificationsModule = {
   };
 };
 
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationModule["BackgroundGeolocation"]>(
+  "BackgroundGeolocation",
+);
+const LocalNotifications = registerPlugin<LocalNotificationsModule["LocalNotifications"]>(
+  "LocalNotifications",
+);
+
 const NOTIFICATION_ID = 1001;
 
 export function isNativePlatform(): boolean {
@@ -122,14 +118,14 @@ export function isNativePlatform(): boolean {
   return !!cap?.isNativePlatform?.();
 }
 
-async function importNativeModule<T>(specifier: string): Promise<T | null> {
-  if (!isNativePlatform()) return null;
-  return (await import(/* @vite-ignore */ specifier)) as T;
-}
-
 export function onLocationFix(fn: Listener) {
   fixListeners.add(fn);
   return () => fixListeners.delete(fn);
+}
+
+export function onTrackingError(fn: ErrorListener) {
+  errorListeners.add(fn);
+  return () => errorListeners.delete(fn);
 }
 
 export function onLockScreenControl(fn: ControlListener) {
@@ -148,20 +144,8 @@ function haversineMeters(a: Coord, b: Coord): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/**
- * Apply accuracy + speed gates before emitting a fix. Drops:
- *   - fixes with accuracy worse than 60m
- *   - fixes implying >12 m/s of travel (impossible for a runner; almost
- *     always a coordinate jump from cell-tower fallback)
- */
-function gateAndEmit(fix: LocationFix) {
-  if (fix.accuracy != null && fix.accuracy > MAX_ACCURACY_METERS) return;
-  if (lastAccepted) {
-    const dt = Math.max(0.5, (fix.timestamp - lastAccepted.timestamp) / 1000);
-    const dist = haversineMeters(lastAccepted.coord, fix.coord);
-    if (dist / dt > MAX_SPEED_MPS) return;
-  }
-  lastAccepted = fix;
+function emitFix(fix: LocationFix) {
+  if (!Number.isFinite(fix.coord[0]) || !Number.isFinite(fix.coord[1])) return;
   fixListeners.forEach((l) => l(fix));
 }
 
@@ -174,33 +158,34 @@ export function emitControl(event: TrackingControlEvent) {
  */
 export async function startTracking(): Promise<boolean> {
   if (watcherHandle) await stopTracking();
-  lastAccepted = null;
 
   if (isNativePlatform()) {
     try {
-      const nativeModule = await importNativeModule<BackgroundGeolocationModule>(
-        NATIVE_MODULES.backgroundGeolocation,
-      );
-      if (!nativeModule) return false;
-      const { BackgroundGeolocation } = nativeModule;
       const id = await BackgroundGeolocation.addWatcher(
         {
           backgroundMessage: "Recording your run",
           backgroundTitle: "Own The Run",
           requestPermissions: true,
           stale: false,
-          // 5m distance filter lets the OS apply motion-fused smoothing so
-          // we don't get jittery 1m updates while the phone is in a pocket.
-          distanceFilter: 5,
+          // Receive every OS location update. Distance smoothing belongs in
+          // the run calculator; filtering here can suppress an entire run.
+          distanceFilter: 0,
         },
-        (location) => {
+        (location, error) => {
+          if (error) {
+            const message = error.code === "NOT_AUTHORIZED"
+              ? "Location access is not set to Always. Open iPhone Settings → Own The Run → Location → Always."
+              : error.message || "Native GPS stopped unexpectedly.";
+            errorListeners.forEach((listener) => listener(message));
+            return;
+          }
           if (!location) return;
-          gateAndEmit({
+          emitFix({
             coord: [location.longitude, location.latitude],
             altitude: location.altitude,
             altitudeAccuracy: location.altitudeAccuracy,
             accuracy: location.accuracy,
-            timestamp: location.time,
+            timestamp: location.time ?? Date.now(),
           });
         },
       );
@@ -215,7 +200,7 @@ export async function startTracking(): Promise<boolean> {
   if (typeof navigator === "undefined" || !navigator.geolocation) return false;
   const webId = navigator.geolocation.watchPosition(
     (pos) => {
-      gateAndEmit({
+      emitFix({
         coord: [pos.coords.longitude, pos.coords.latitude],
         altitude: pos.coords.altitude,
         altitudeAccuracy: pos.coords.altitudeAccuracy,
@@ -235,11 +220,6 @@ export async function stopTracking(): Promise<void> {
 
   if (watcherHandle.id && isNativePlatform()) {
     try {
-      const nativeModule = await importNativeModule<BackgroundGeolocationModule>(
-        NATIVE_MODULES.backgroundGeolocation,
-      );
-      if (!nativeModule) return;
-      const { BackgroundGeolocation } = nativeModule;
       await BackgroundGeolocation.removeWatcher({ id: watcherHandle.id });
     } catch {
       /* ignore */
@@ -249,7 +229,6 @@ export async function stopTracking(): Promise<void> {
     navigator.geolocation.clearWatch(watcherHandle.webId);
   }
   watcherHandle = null;
-  lastAccepted = null;
 }
 
 /**
@@ -266,11 +245,6 @@ export async function updateLockScreenStats(stats: {
 }): Promise<void> {
   if (!isNativePlatform()) return;
   try {
-    const nativeModule = await importNativeModule<LocalNotificationsModule>(
-      NATIVE_MODULES.localNotifications,
-    );
-    if (!nativeModule) return;
-    const { LocalNotifications } = nativeModule;
     const miles = (stats.distanceMeters / 1609.344).toFixed(2);
     const m = Math.floor(stats.elapsedSeconds / 60);
     const s = String(stats.elapsedSeconds % 60).padStart(2, "0");
@@ -297,11 +271,7 @@ export async function updateLockScreenStats(stats: {
 export async function clearLockScreenStats(): Promise<void> {
   if (!isNativePlatform()) return;
   try {
-    const nativeModule = await importNativeModule<LocalNotificationsModule>(
-      NATIVE_MODULES.localNotifications,
-    );
-    if (!nativeModule) return;
-    await nativeModule.LocalNotifications.cancel({
+    await LocalNotifications.cancel({
       notifications: [{ id: NOTIFICATION_ID }],
     });
   } catch {
@@ -317,11 +287,6 @@ let controlsRegistered = false;
 export async function registerLockScreenControls(): Promise<void> {
   if (!isNativePlatform() || controlsRegistered) return;
   try {
-    const nativeModule = await importNativeModule<LocalNotificationsModule>(
-      NATIVE_MODULES.localNotifications,
-    );
-    if (!nativeModule) return;
-    const { LocalNotifications } = nativeModule;
     await LocalNotifications.requestPermissions().catch(() => undefined);
     await LocalNotifications.registerActionTypes({
       types: [

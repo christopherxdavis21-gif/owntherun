@@ -27,6 +27,7 @@ import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
 import {
   onLocationFix,
+  onTrackingError,
   onLockScreenControl,
   startTracking,
   stopTracking,
@@ -283,12 +284,9 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       const last = lastFixRef.current;
       if (last) {
         const d = haversineMeters(last, coord);
-        // Stricter noise floor: require movement > max(5m, 0.75 * accuracy).
-        // Pocket-locked iPhones routinely report 15–30m accuracy with 8–12m
-        // of random jitter between samples — that jitter was being counted
-        // as real distance. The 0.75 multiplier kills it without hurting
-        // genuine slow-running fixes.
-        const noiseFloor = Math.max(5, (accuracy ?? 0) * 0.75);
+        // Ignore tiny stationary jitter without allowing a temporarily broad
+        // accuracy radius to suppress genuine forward movement indefinitely.
+        const noiseFloor = Math.max(2, Math.min(10, (accuracy ?? 0) * 0.35));
         if (d < noiseFloor) {
           setCenter(coord);
           return prev;
@@ -326,11 +324,16 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
         nativeUnsubRef.current = onLocationFix((fix: LocationFix) => {
           handleFix(fix.coord, fix.altitude, fix.altitudeAccuracy, fix.accuracy);
         });
+        const unsubscribeError = onTrackingError((message) => {
+          setPermError(message);
+        });
         const started = await startTracking();
         if (started) {
           setTrackingSource("native");
+          nativeErrorUnsubRef.current = unsubscribeError;
           return true;
         }
+        unsubscribeError();
         // If native start failed (plugin missing, perm denied), unsubscribe
         // and fall through to the web watcher so the user still gets tracking.
         nativeUnsubRef.current?.();
@@ -364,6 +367,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     return true;
   };
 
+  const nativeErrorUnsubRef = useRef<(() => void) | null>(null);
+
   const endWatch = () => {
     if (watchIdRef.current != null && navigator.geolocation) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -372,6 +377,10 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     if (nativeUnsubRef.current) {
       nativeUnsubRef.current();
       nativeUnsubRef.current = null;
+    }
+    if (nativeErrorUnsubRef.current) {
+      nativeErrorUnsubRef.current();
+      nativeErrorUnsubRef.current = null;
     }
     void stopTracking();
     lastFixRef.current = null;
