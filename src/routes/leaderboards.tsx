@@ -9,12 +9,9 @@ import {
   formatPace,
   formatElevation,
   metersToMiles,
-  ageFromBirthdate,
-  ageInBucket,
   windowStart,
   minMetersForDistanceFilter,
   ownershipThresholdMiles,
-  type AgeBucket,
   type DistanceFilter,
   type TimeFilter,
   type ActivityLabel,
@@ -28,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Crown, Trophy, Star, BookmarkPlus, Bookmark, Filter } from "lucide-react";
+import { Crown, Trophy, Star, BookmarkPlus, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 
 type Category = "miles" | "pace" | "time";
