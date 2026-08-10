@@ -74,6 +74,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
 
   const watchIdRef = useRef<number | null>(null);
   const lastFixRef = useRef<Coord | null>(null);
+  const lastFixTimeRef = useRef<number | null>(null);
+
   const lastAltRef = useRef<number | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number | null>(null);
