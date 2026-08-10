@@ -6,54 +6,82 @@ import SwiftUI
  * Live Activity UI: lock screen banner + Dynamic Island.
  * Add this file to the `OwnTheRunActivity` widget extension target only.
  */
+
+private struct OTRLockScreenView: View {
+    let state: OwnTheRunAttributes.ContentState
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image("AppLogo")
+                .resizable()
+                .frame(width: 36, height: 36)
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(state.status == "paused" ? "Paused" : "Own The Run")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(OTRFormat.miles(state.distanceMeters))
+                    .font(.title2.bold())
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(OTRFormat.duration(state.elapsedSeconds))
+                    .font(.headline)
+                Text(OTRFormat.pace(state.paceSecondsPerMile))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+    }
+}
+
+private struct OTRStatView: View {
+    let label: String
+    let value: String
+    let alignment: HorizontalAlignment
+
+    var body: some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.headline)
+        }
+    }
+}
+
 struct OwnTheRunLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: OwnTheRunAttributes.self) { context in
-            // Lock screen / banner
-            HStack(spacing: 16) {
-                Image("AppLogo")
-                    .resizable()
-                    .frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: 9))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(context.state.status == "paused" ? "Paused" : "Own The Run")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(OTRFormat.miles(context.state.distanceMeters))
-                        .font(.title2.bold())
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(OTRFormat.duration(context.state.elapsedSeconds))
-                        .font(.headline.monospacedDigit())
-                    Text(OTRFormat.pace(context.state.paceSecondsPerMile))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding()
-            .activityBackgroundTint(Color.black.opacity(0.85))
-            .activitySystemActionForegroundColor(Color.white)
+            OTRLockScreenView(state: context.state)
+                .activityBackgroundTint(Color.black.opacity(0.85))
+                .activitySystemActionForegroundColor(Color.white)
         } dynamicIsland: { context in
-            DynamicIsland {
+            let state = context.state
+
+            return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    VStack(alignment: .leading) {
-                        Text("Distance").font(.caption2).foregroundStyle(.secondary)
-                        Text(OTRFormat.miles(context.state.distanceMeters)).font(.headline)
-                    }
+                    OTRStatView(
+                        label: "Distance",
+                        value: OTRFormat.miles(state.distanceMeters),
+                        alignment: .leading
+                    )
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    VStack(alignment: .trailing) {
-                        Text("Pace").font(.caption2).foregroundStyle(.secondary)
-                        Text(OTRFormat.pace(context.state.paceSecondsPerMile)).font(.headline.monospacedDigit())
-                    }
+                    OTRStatView(
+                        label: "Pace",
+                        value: OTRFormat.pace(state.paceSecondsPerMile),
+                        alignment: .trailing
+                    )
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(OTRFormat.duration(context.state.elapsedSeconds))
-                        .font(.title.monospacedDigit().bold())
+                    Text(OTRFormat.duration(state.elapsedSeconds))
+                        .font(.title.bold())
                 }
             } compactLeading: {
                 Image("AppLogo")
@@ -61,8 +89,8 @@ struct OwnTheRunLiveActivity: Widget {
                     .frame(width: 18, height: 18)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
             } compactTrailing: {
-                Text(OTRFormat.miles(context.state.distanceMeters))
-                    .font(.caption2.monospacedDigit())
+                Text(OTRFormat.miles(state.distanceMeters))
+                    .font(.caption2)
             } minimal: {
                 Image("AppLogo")
                     .resizable()
