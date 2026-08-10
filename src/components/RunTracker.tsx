@@ -157,6 +157,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       nativeUnsubRef.current?.();
       nativeErrorUnsubRef.current?.();
       void stopTracking();
+      void endLiveActivity();
       if (tickRef.current) clearInterval(tickRef.current);
       releaseWakeLock();
     };
