@@ -269,6 +269,11 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
   ) => {
     if (accuracy != null) setLastAccuracy(accuracy);
 
+    // Drift guard: with the screen locked iOS sometimes emits very coarse
+    // cell/wifi fixes. Recording those is what makes the trace zig-zag off
+    // the road. Drop the truly wild ones — GPS-quality fixes are < ~50m.
+    if (accuracy != null && accuracy > 75) return;
+
     if (
       typeof altitude === "number" &&
       !Number.isNaN(altitude) &&
@@ -293,10 +298,18 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
           setCenter(coord);
           return prev;
         }
+        // Teleport guard: reject physically impossible jumps (> 9 m/s sustained,
+        // ~5:58/mi) which are always a bad fix, not a sprint.
+        const dt = Math.max(1, (fixTime - (lastFixTimeRef.current ?? fixTime)) / 1000);
+        if (lastFixTimeRef.current != null && d / dt > 9 && d > 60) {
+          return prev;
+        }
         setDistance((cur) => cur + d);
       }
       lastFixRef.current = coord;
+      lastFixTimeRef.current = fixTime;
       setCenter(coord);
+
       const next = [...prev, coord];
       setCoordTimes((t) => [...t, fixTime]);
       try {
