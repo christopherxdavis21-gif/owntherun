@@ -151,6 +151,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       if (watchIdRef.current != null && navigator.geolocation) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
+      nativeUnsubRef.current?.();
+      nativeErrorUnsubRef.current?.();
       void stopTracking();
       if (tickRef.current) clearInterval(tickRef.current);
       releaseWakeLock();
@@ -312,11 +314,6 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
   const nativeUnsubRef = useRef<(() => void) | null>(null);
 
   const beginWatch = async (): Promise<boolean> => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setPermError("Geolocation is not supported on this device.");
-      return false;
-    }
-
     // Native (iOS/Android in Capacitor): use background-geolocation. This is
     // the ONLY place we trigger the "Always Allow" prompt — never at app launch.
     if (isNativePlatform()) {
@@ -339,12 +336,18 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
         nativeUnsubRef.current?.();
         nativeUnsubRef.current = null;
       } catch {
+        nativeErrorUnsubRef.current?.();
+        nativeErrorUnsubRef.current = null;
         nativeUnsubRef.current?.();
         nativeUnsubRef.current = null;
       }
     }
 
     // Web fallback (or native fallback) — When-In-Use only.
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setPermError("Geolocation is not supported on this device.");
+      return false;
+    }
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         handleFix(
