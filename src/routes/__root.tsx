@@ -29,6 +29,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
+      { name: "google-site-verification", content: "g2wqOqI-Ke5pLUl4iz2n3qIbS3ZH0iIRuQU4PU4m5Po" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Own The Run" },
       { name: "description", content: "Be number one in your city, your state, or the world. Own as many routes to climb the leaderboards and be the best runner in your area." },
