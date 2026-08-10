@@ -127,8 +127,8 @@ function LeaderboardsPage() {
       const ids = Array.from(new Set(rows.map((r) => r.user_id)));
       if (ids.length) {
         const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, display_name, clan_tag, gender, birthdate")
+          .from("public_profiles")
+          .select("user_id, display_name, clan_tag")
           .in("user_id", ids);
         const map: Record<string, ProfileRow> = {};
         ((profs as ProfileRow[] | null) ?? []).forEach((p) => (map[p.user_id] = p));
