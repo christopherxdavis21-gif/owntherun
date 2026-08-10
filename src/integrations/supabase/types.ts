@@ -577,26 +577,6 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
         }
-        Insert: {
-          avatar_url?: string | null
-          clan_group_id?: string | null
-          clan_tag?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          clan_group_id?: string | null
-          clan_tag?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
         Relationships: []
       }
     }
