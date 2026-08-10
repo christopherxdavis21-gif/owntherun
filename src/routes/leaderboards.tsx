@@ -344,17 +344,8 @@ function LeaderboardsPage() {
         </div>
       )}
 
-      {/* Filter toggle */}
+      {/* Saved views */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowFilters((s) => !s)}
-          className="gap-1"
-        >
-          <Filter className="h-3.5 w-3.5" />
-          Filters
-        </Button>
         {userId && (
           <Button size="sm" variant="ghost" onClick={saveCurrentView} className="gap-1">
             <BookmarkPlus className="h-3.5 w-3.5" />
@@ -379,67 +370,6 @@ function LeaderboardsPage() {
           </Select>
         )}
       </div>
-
-      {showFilters && (
-        <div className="mb-4 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="eyebrow text-muted-foreground">Gender</label>
-            <Select value={genderFilter} onValueChange={(v) => setGenderFilter(v as GenderFilter)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="male">Men</SelectItem>
-                <SelectItem value="female">Women</SelectItem>
-                <SelectItem value="nonbinary">Nonbinary</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="eyebrow text-muted-foreground">Age</label>
-            <Select value={ageFilter} onValueChange={(v) => setAgeFilter(v as AgeBucket)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All ages</SelectItem>
-                <SelectItem value="under18">Under 18</SelectItem>
-                <SelectItem value="18_27">18–27</SelectItem>
-                <SelectItem value="28_34">28–34</SelectItem>
-                <SelectItem value="35_44">35–44</SelectItem>
-                <SelectItem value="45_54">45–54</SelectItem>
-                <SelectItem value="55_64">55–64</SelectItem>
-                <SelectItem value="65_74">65–74</SelectItem>
-                <SelectItem value="75plus">75+</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {savedViews.length > 0 && (
-            <div className="sm:col-span-2 space-y-2">
-              <p className="eyebrow text-muted-foreground">Your saved views</p>
-              <div className="flex flex-wrap gap-2">
-                {savedViews.map((v) => (
-                  <div key={v.id} className="flex items-center gap-1 rounded-md border border-border bg-surface/40 px-2 py-1 text-xs">
-                    <button onClick={() => applyView(v)} className="font-medium hover:text-primary">
-                      {v.name}
-                    </button>
-                    <button
-                      onClick={() => setDefault(v.id)}
-                      className={v.is_default ? "text-primary" : "text-muted-foreground hover:text-foreground"}
-                      aria-label="Set default"
-                    >
-                      <Star className={`h-3 w-3 ${v.is_default ? "fill-current" : ""}`} />
-                    </button>
-                    <button
-                      onClick={() => deleteView(v.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Ownership header */}
       <div className="mb-5 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent p-5">
