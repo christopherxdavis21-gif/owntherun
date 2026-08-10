@@ -79,8 +79,6 @@ function LeaderboardsPage() {
   const [category, setCategory] = useState<Category>("miles");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("week");
   const [distanceFilter, setDistanceFilter] = useState<DistanceFilter>("any");
-  const [genderFilter, setGenderFilter] = useState<GenderFilter>("all");
-  const [ageFilter, setAgeFilter] = useState<AgeBucket>("all");
 
   const [runs, setRuns] = useState<RunRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileRow>>({});
