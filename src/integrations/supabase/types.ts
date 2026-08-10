@@ -274,6 +274,39 @@ export type Database = {
         }
         Relationships: []
       }
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          clan_group_id: string | null
+          clan_tag: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          clan_group_id?: string | null
+          clan_tag?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          clan_group_id?: string | null
+          clan_tag?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       routes: {
         Row: {
           coordinates: Json
@@ -566,19 +599,7 @@ export type Database = {
       }
     }
     Views: {
-      public_profiles: {
-        Row: {
-          avatar_url: string | null
-          clan_group_id: string | null
-          clan_tag: string | null
-          created_at: string | null
-          display_name: string | null
-          id: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never
