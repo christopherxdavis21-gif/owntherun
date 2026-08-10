@@ -36,6 +36,7 @@ import {
   clearLockScreenStats,
   type LocationFix,
 } from "@/lib/tracking";
+import { updateLiveActivity, endLiveActivity } from "@/lib/liveActivity";
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
@@ -156,6 +157,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       nativeUnsubRef.current?.();
       nativeErrorUnsubRef.current?.();
       void stopTracking();
+      void endLiveActivity();
       if (tickRef.current) clearInterval(tickRef.current);
       releaseWakeLock();
     };
@@ -188,10 +190,11 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  // Push live stats to the lock-screen notification ~ every 3s while active.
+  // Push live stats to the lock-screen notification + Live Activity ~every 3s.
   useEffect(() => {
     if (status !== "running" && status !== "paused") {
       void clearLockScreenStats();
+      void endLiveActivity();
       return;
     }
     const push = () => {
@@ -202,6 +205,12 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
         elapsedSeconds: elapsed,
         paceSecondsPerMile: paceSecPerMile,
         elevationMeters: elevationGain,
+        status: status === "running" ? "running" : "paused",
+      });
+      void updateLiveActivity({
+        distanceMeters: distance,
+        elapsedSeconds: elapsed,
+        paceSecondsPerMile: paceSecPerMile,
         status: status === "running" ? "running" : "paused",
       });
     };
