@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export const getMapboxToken = createServerFn({ method: "GET" }).handler(async () => {
+export const getMapboxToken = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
   const token = process.env.MAPBOX_PUBLIC_TOKEN;
   if (!token) throw new Error("Mapbox token not configured");
   return { token };
@@ -16,6 +19,7 @@ type Coord = [number, number];
  * we batch into overlapping windows and stitch the geometries together.
  */
 export const snapToRoads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
     const data = input as { waypoints?: Coord[] };
     if (!data?.waypoints || !Array.isArray(data.waypoints)) {
@@ -82,6 +86,7 @@ export const snapToRoads = createServerFn({ method: "POST" })
  * request volume reasonable.
  */
 export const computeElevationGain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
     const data = input as { coordinates?: Coord[] };
     if (!data?.coordinates || !Array.isArray(data.coordinates)) {
@@ -302,6 +307,7 @@ async function fetchSearchboxBusinessResults(
 }
 
 export const geocodePlace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
     const data = input as { query?: string; proximity?: Coord };
     if (!data?.query || typeof data.query !== "string") {

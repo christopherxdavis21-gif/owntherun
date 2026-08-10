@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Coord = [number, number];
 
@@ -24,6 +25,7 @@ export type DirectionStep = {
  * maneuvers spanning the whole path.
  */
 export const getRouteDirections = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => {
     const data = input as { coordinates?: Coord[] };
     if (!data?.coordinates || !Array.isArray(data.coordinates) || data.coordinates.length < 2) {
