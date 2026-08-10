@@ -29,7 +29,6 @@ import { Crown, Trophy, Star, BookmarkPlus, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 
 type Category = "miles" | "pace" | "time";
-type GenderFilter = "all" | "male" | "female" | "nonbinary";
 
 type RunRow = {
   id: string;
@@ -43,8 +42,6 @@ type ProfileRow = {
   user_id: string;
   display_name: string;
   clan_tag: string | null;
-  gender: string | null;
-  birthdate: string | null;
 };
 type SavedView = {
   id: string;
@@ -52,8 +49,6 @@ type SavedView = {
   category: Category;
   time_filter: TimeFilter;
   distance_filter: DistanceFilter | null;
-  gender_filter: GenderFilter | null;
-  age_filter: AgeBucket | null;
   is_default: boolean;
 };
 
