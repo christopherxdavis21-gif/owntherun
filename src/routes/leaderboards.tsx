@@ -181,24 +181,14 @@ function LeaderboardsPage() {
       };
     });
 
-    // View filters (gender / age) — affect view, NOT ownership
-    const view = all.filter((r) => {
-      if (genderFilter !== "all" && r.profile?.gender !== genderFilter) return false;
-      if (ageFilter !== "all") {
-        const age = ageFromBirthdate(r.profile?.birthdate);
-        if (!ageInBucket(age, ageFilter)) return false;
-      }
-      return true;
-    });
-
-    view.sort((a, b) => {
+    all.sort((a, b) => {
       if (category === "miles") return b.totalMeters - a.totalMeters;
       if (category === "time") return b.totalSeconds - a.totalSeconds;
       return a.paceSecPerMeter - b.paceSecPerMeter;
     });
 
-    return view;
-  }, [runs, profiles, category, distanceFilter, genderFilter, ageFilter, timeFilter]);
+    return all;
+  }, [runs, profiles, category, distanceFilter, timeFilter]);
 
   // Ownership uses unfiltered (gender/age don't matter) but does apply distance filter for pace
   const ownership = useMemo(() => {
