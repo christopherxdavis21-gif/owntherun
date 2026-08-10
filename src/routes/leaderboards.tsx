@@ -85,7 +85,6 @@ function LeaderboardsPage() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
 
   // Load default saved view on first mount
   useEffect(() => {
