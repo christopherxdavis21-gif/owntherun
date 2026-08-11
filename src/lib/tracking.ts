@@ -24,6 +24,8 @@ export type LocationFix = {
   altitude: number | null;
   altitudeAccuracy: number | null;
   accuracy: number | null;
+  /** Ground speed in metres/second, when the OS can supply one. */
+  speed: number | null;
   timestamp: number;
 };
 
@@ -48,6 +50,7 @@ type NativeLocation = {
   altitude: number | null;
   altitudeAccuracy: number | null;
   accuracy: number | null;
+  speed: number | null;
   time: number | null;
 };
 
