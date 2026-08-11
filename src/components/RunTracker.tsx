@@ -283,7 +283,9 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     // Drift guard: with the screen locked iOS sometimes emits very coarse
     // cell/wifi fixes. Recording those is what makes the trace zig-zag off
     // the road. Drop the truly wild ones — GPS-quality fixes are < ~50m.
-    if (accuracy != null && accuracy > 75) return;
+    // Cell/wifi fixes come back ~65m+ and are what throw the line off the
+    // road; real GPS fixes are well under 50m.
+    if (accuracy != null && accuracy > 50) return;
 
     if (
       typeof altitude === "number" &&
