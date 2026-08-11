@@ -437,6 +437,14 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       speak("Run started");
     }
     setStatus("running");
+    // Kick the Dynamic Island / lock-screen Live Activity off immediately so
+    // it's already up before the phone gets pocketed.
+    void startLiveActivity({
+      distanceMeters: 0,
+      elapsedSeconds: 0,
+      paceSecondsPerMile: 0,
+      status: "running",
+    });
   };
   const handlePause = () => {
     endWatch();
