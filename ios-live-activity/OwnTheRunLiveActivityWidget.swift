@@ -34,7 +34,6 @@ private struct OTRControlButtons: View {
             .tint(.red)
         }
         .buttonStyle(.bordered)
-challenge_placeholder
     }
 }
 
