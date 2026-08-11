@@ -81,6 +81,96 @@ export const snapToRoads = createServerFn({ method: "POST" })
   });
 
 /**
+ * Snap a *recorded* GPS trace onto the road/path network using the Mapbox
+ * Map Matching API. This is what removes the drunken zig-zag you get from
+ * coarse fixes while the phone is locked in a pocket.
+ *
+ * Returns the matched polyline plus its distance. Falls back to the raw trace
+ * (matched: false) whenever Mapbox can't confidently match a segment.
+ */
+export const mapMatchTrace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => {
+    const data = input as { coordinates?: Coord[] };
+    if (!data?.coordinates || !Array.isArray(data.coordinates)) {
+      throw new Error("coordinates required");
+    }
+    return { coordinates: data.coordinates as Coord[] };
+  })
+  .handler(async ({ data }) => {
+    const token = process.env.MAPBOX_PUBLIC_TOKEN;
+    if (!token) throw new Error("Mapbox token not configured");
+
+    const raw = data.coordinates;
+    if (raw.length < 4) {
+      return { coordinates: raw, distance_meters: 0, matched: false };
+    }
+
+    // Map Matching accepts at most 100 coordinates per request.
+    const BATCH = 100;
+    // Down-sample very dense traces so a long run still fits in a few calls.
+    const maxPoints = BATCH * 12;
+    const stride = Math.max(1, Math.ceil(raw.length / maxPoints));
+    const points: Coord[] = [];
+    for (let i = 0; i < raw.length; i += stride) points.push(raw[i]);
+    const lastRaw = raw[raw.length - 1];
+    if (points[points.length - 1] !== lastRaw) points.push(lastRaw);
+
+    const stitched: Coord[] = [];
+    let totalDistance = 0;
+    let anyMatched = false;
+
+    for (let i = 0; i < points.length - 1; i += BATCH - 1) {
+      const slice = points.slice(i, i + BATCH);
+      if (slice.length < 2) break;
+
+      const coordStr = slice.map((c) => `${c[0].toFixed(6)},${c[1].toFixed(6)}`).join(";");
+      const radiuses = slice.map(() => 25).join(";");
+      const url =
+        `https://api.mapbox.com/matching/v5/mapbox/walking/${coordStr}` +
+        `?geometries=geojson&overview=full&tidy=true&radiuses=${radiuses}` +
+        `&access_token=${token}`;
+
+      let matchedSlice: Coord[] | null = null;
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = (await res.json()) as {
+            matchings?: Array<{
+              distance: number;
+              confidence?: number;
+              geometry: { coordinates: Coord[] };
+            }>;
+          };
+          const best = json.matchings?.[0];
+          if (best && (best.confidence ?? 1) >= 0.2 && best.geometry.coordinates.length > 1) {
+            matchedSlice = best.geometry.coordinates;
+            totalDistance += best.distance;
+            anyMatched = true;
+          }
+        }
+      } catch {
+        /* fall back to the raw slice below */
+      }
+
+      const geom = matchedSlice ?? slice;
+      if (stitched.length > 0 && geom.length > 0) stitched.push(...geom.slice(1));
+      else stitched.push(...geom);
+    }
+
+    if (!anyMatched || stitched.length < 2) {
+      return { coordinates: raw, distance_meters: 0, matched: false };
+    }
+    return {
+      coordinates: stitched,
+      distance_meters: Math.round(totalDistance),
+      matched: true,
+    };
+  });
+
+
+
+/**
  * Compute elevation gain (meters) along a polyline by sampling Mapbox
  * Terrain-RGB tiles via the Tilequery API. Samples at most 64 points to keep
  * request volume reasonable.
