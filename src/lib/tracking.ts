@@ -177,6 +177,7 @@ export async function startTracking(): Promise<boolean> {
             altitude: location.altitude,
             altitudeAccuracy: location.altitudeAccuracy,
             accuracy: location.accuracy,
+            speed: location.speed,
             timestamp: location.time ?? Date.now(),
           });
         },
@@ -202,6 +203,7 @@ export async function startTracking(): Promise<boolean> {
         altitude: pos.coords.altitude,
         altitudeAccuracy: pos.coords.altitudeAccuracy,
         accuracy: pos.coords.accuracy,
+        speed: pos.coords.speed,
         timestamp: pos.timestamp,
       });
     },
