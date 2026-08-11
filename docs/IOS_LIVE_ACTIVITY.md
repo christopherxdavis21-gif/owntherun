@@ -162,3 +162,41 @@ Three Swift files ship in the repo folder **`ios-live-activity/`**:
 1. Info.plist keys (step 1) + Background Modes capability (step 2) → background GPS.
 2. Widget Extension + the three Swift files in `ios-live-activity/` (step 4) → Dynamic Island pill.
 3. Clean, archive, upload to TestFlight.
+
+---
+
+## Lock-screen controls (Pause / Resume / Finish)
+
+The Live Activity now shows **distance, time, pace** plus interactive
+**Pause / Resume / Finish** buttons (iOS 17+). Tapping them drives the same
+state machine as the in-app buttons — no unlock required.
+
+### 1. Add the new file
+Drag `ios-live-activity/OwnTheRunControlIntents.swift` into Xcode.
+Target membership: **App _and_ OwnTheRunActivity** (both ticked).
+
+### 2. Enable an App Group (required — this is how the button reaches the app)
+For **each** target (App, then OwnTheRunActivity):
+Signing & Capabilities → **+ Capability** → **App Groups** → **+** →
+`group.com.owntherun.app`
+
+The identifier must match `OTRControlStore.appGroup` in
+`OwnTheRunControlIntents.swift` exactly, and must be ticked on both targets.
+
+### 3. Replace the widget file
+Delete the old `OwnTheRunLiveActivityWidget.swift` reference in Xcode
+("Remove Reference"), then drag in the updated one from
+`ios-live-activity/`. Target membership: **OwnTheRunActivity only**.
+
+### 4. Confirm Info.plist
+The main app's `Info.plist` needs:
+```xml
+<key>NSSupportsLiveActivities</key>
+<true/>
+```
+
+### 5. Build
+`bunx cap sync ios`, then Product → Clean Build Folder → Cmd + B.
+
+On iOS 16.x the buttons are hidden automatically and the banner still shows
+distance/time/pace.

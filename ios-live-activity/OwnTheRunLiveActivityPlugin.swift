@@ -15,7 +15,8 @@ public class OwnTheRunLiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "update", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "end", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "end", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "consumeControl", returnType: CAPPluginReturnPromise)
     ]
 
     private var activity: Any?
@@ -73,5 +74,11 @@ public class OwnTheRunLiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
             self.activity = nil
             call.resolve()
         }
+    }
+
+    /// Returns (and clears) any Pause/Resume/Finish command tapped on the
+    /// lock-screen Live Activity buttons.
+    @objc func consumeControl(_ call: CAPPluginCall) {
+        call.resolve(["command": OTRControlStore.consume() ?? ""])
     }
 }

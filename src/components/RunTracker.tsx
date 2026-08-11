@@ -38,7 +38,12 @@ import {
   clearLockScreenStats,
   type LocationFix,
 } from "@/lib/tracking";
-import { startLiveActivity, updateLiveActivity, endLiveActivity } from "@/lib/liveActivity";
+import {
+  startLiveActivity,
+  updateLiveActivity,
+  endLiveActivity,
+  consumeLiveActivityControl,
+} from "@/lib/liveActivity";
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
@@ -190,6 +195,25 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     });
     return () => {
       unsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  // Poll for Pause/Resume/Finish taps on the Live Activity lock-screen buttons.
+  useEffect(() => {
+    if (status !== "running" && status !== "paused") return;
+    let cancelled = false;
+    const poll = async () => {
+      const command = await consumeLiveActivityControl();
+      if (cancelled || !command) return;
+      if (command === "pause" && status === "running") handlePause();
+      else if (command === "resume" && status === "paused") void handleResume();
+      else if (command === "stop") handleStop();
+    };
+    const id = setInterval(() => void poll(), 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
