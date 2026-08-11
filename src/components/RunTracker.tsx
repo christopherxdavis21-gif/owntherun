@@ -267,6 +267,52 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     setElapsed(Math.floor(accumulatedMsRef.current / 1000));
   };
 
+  // --- Dead reckoning bookkeeping -----------------------------------------
+  // `pedoBaselineRef` is the cumulative pedometer reading at the moment GPS
+  // was last healthy; `gapCreditedRef` is how much of the current gap we have
+  // already added to the total. Diffing against a baseline (rather than
+  // summing deltas) means a missed or failed poll can never lose mileage.
+  const pedoBaselineRef = useRef<number | null>(null);
+  const gapCreditedRef = useRef(0);
+
+  /** Re-anchor the pedometer baseline after a healthy GPS fix. */
+  const rebasePedometer = async () => {
+    const reading = await readPedometerDistance();
+    if (reading != null) pedoBaselineRef.current = reading;
+    gapCreditedRef.current = 0;
+  };
+
+  /**
+   * Credit distance for a stretch where GPS was unusable. Prefers CoreMotion's
+   * step-based distance, which keeps recording on the motion coprocessor even
+   * while the app is suspended, and falls back to speed x time when the
+   * pedometer is unavailable (web, or a build without the native plugin).
+   */
+  const bridgeGapDistance = async (
+    speed: number | null,
+    gapSeconds: number,
+    fixTime: number,
+  ) => {
+    const reading = await readPedometerDistance();
+    const baseline = pedoBaselineRef.current;
+
+    if (reading != null && baseline != null && reading > baseline) {
+      const owed = reading - baseline - gapCreditedRef.current;
+      if (owed > 0) {
+        gapCreditedRef.current += owed;
+        setDistance((cur) => cur + owed);
+        lastFixTimeRef.current = fixTime;
+      }
+      return;
+    }
+
+    const bridged = deadReckonDistance(speed, gapSeconds);
+    if (bridged > 0) {
+      setDistance((cur) => cur + bridged);
+      lastFixTimeRef.current = fixTime;
+    }
+  };
+
   // Shared handler for any incoming GPS fix (web or native background plugin).
   //
   // Three defences run here, in order:
