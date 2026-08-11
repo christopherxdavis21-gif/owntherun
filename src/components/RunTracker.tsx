@@ -496,10 +496,29 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       if (!userData.user) throw new Error("Not signed in");
       const userId = userData.user.id;
 
+      // Snap the recorded trace to the road/path network so the saved map
+      // clings to streets instead of the pocket-GPS zig-zag.
+      let finalCoords: Coord[] = coords;
+      let finalDistance = distance;
+      try {
+        const snapped = await mapMatchTrace({ data: { coordinates: coords } });
+        if (snapped.matched && snapped.coordinates.length > 1) {
+          finalCoords = snapped.coordinates as Coord[];
+          // Only trust the matched distance when it's in the same ballpark as
+          // the GPS-measured distance (guards against a bad match shortcut).
+          const d = snapped.distance_meters;
+          if (d > 0 && distance > 0 && d / distance > 0.7 && d / distance < 1.3) {
+            finalDistance = d;
+          }
+        }
+      } catch {
+        // Non-fatal — keep the raw trace
+      }
+
       // Refine elevation gain via Mapbox terrain (more accurate than phone GPS altitude)
       let finalElev = elevationGain;
       try {
-        const elev = await computeElevationGain({ data: { coordinates: coords } });
+        const elev = await computeElevationGain({ data: { coordinates: finalCoords } });
         if (elev.elevation_gain_meters > 0) finalElev = elev.elevation_gain_meters;
       } catch {
         // Non-fatal, fall back to live GPS-derived gain
@@ -514,8 +533,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
             user_id: userId,
             name: routeName.trim(),
             description: null,
-            coordinates: coords,
-            distance_meters: distance,
+            coordinates: finalCoords,
+            distance_meters: finalDistance,
             is_public: routePublic,
           })
           .select("id")
@@ -527,14 +546,15 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       const { error: runErr } = await supabase.from("runs").insert({
         user_id: userId,
         route_id: routeId,
-        distance_meters: distance,
+        distance_meters: finalDistance,
         duration_seconds: elapsed,
         elevation_gain_meters: finalElev,
         visibility,
         notes: notes.trim() || null,
-        coordinates: coords,
+        coordinates: finalCoords,
       });
       if (runErr) throw runErr;
+
 
       try { window.localStorage.removeItem("otr:active-run-coords"); } catch { /* ignore */ }
 
