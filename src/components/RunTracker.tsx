@@ -420,6 +420,13 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
   const nativeUnsubRef = useRef<(() => void) | null>(null);
 
   const beginWatch = async (): Promise<boolean> => {
+    // Start CoreMotion alongside GPS. It costs almost nothing (the motion
+    // coprocessor is always running) and gives us step-based distance to
+    // bridge GPS dropouts in a pocket. No-op where unavailable.
+    pedoBaselineRef.current = null;
+    gapCreditedRef.current = 0;
+    void startPedometer();
+
     // Native (iOS/Android in Capacitor): use background-geolocation. This is
     // the ONLY place we trigger the "Always Allow" prompt — never at app launch.
     if (isNativePlatform()) {
@@ -501,6 +508,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       nativeErrorUnsubRef.current = null;
     }
     void stopTracking();
+    void stopPedometer();
     lastFixRef.current = null;
     lastAltRef.current = null;
     kalmanRef.current = new GpsKalman();
