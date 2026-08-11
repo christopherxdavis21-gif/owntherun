@@ -21,6 +21,7 @@ type LiveActivityPlugin = {
   start: (options: LiveActivityState) => Promise<void>;
   update: (options: LiveActivityState) => Promise<void>;
   end: () => Promise<void>;
+  consumeControl: () => Promise<{ command: string }>;
 };
 
 const LiveActivity = registerPlugin<LiveActivityPlugin>("OwnTheRunLiveActivity");
@@ -69,4 +70,23 @@ export async function endLiveActivity(): Promise<void> {
     /* ignore */
   }
   active = false;
+}
+
+/**
+ * Reads (and clears) any Pause / Resume / Finish command the user tapped on the
+ * lock-screen Live Activity buttons. Returns null when nothing is pending.
+ */
+export async function consumeLiveActivityControl(): Promise<
+  "pause" | "resume" | "stop" | null
+> {
+  if (!available() || !active) return null;
+  try {
+    const { command } = await LiveActivity.consumeControl();
+    if (command === "pause" || command === "resume" || command === "stop") {
+      return command;
+    }
+  } catch {
+    /* older build without the intent bridge */
+  }
+  return null;
 }
