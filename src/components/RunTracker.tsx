@@ -23,6 +23,7 @@ import {
 } from "@/lib/format";
 import { computeElevationGain, mapMatchTrace } from "@/lib/mapbox.functions";
 import { GpsKalman, deadReckonDistance } from "@/lib/gpsFilter";
+import { startPedometer, stopPedometer, readPedometerDistance } from "@/lib/pedometer";
 import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
 import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
@@ -159,6 +160,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       nativeUnsubRef.current?.();
       nativeErrorUnsubRef.current?.();
       void stopTracking();
+      void stopPedometer();
       void endLiveActivity();
       if (tickRef.current) clearInterval(tickRef.current);
       releaseWakeLock();
@@ -502,6 +504,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     lastFixRef.current = null;
     lastAltRef.current = null;
     kalmanRef.current = new GpsKalman();
+    pedoBaselineRef.current = null;
+    gapCreditedRef.current = 0;
   };
 
   const handleStart = async () => {
@@ -572,6 +576,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     lastFixRef.current = null;
     lastAltRef.current = null;
     kalmanRef.current = new GpsKalman();
+    pedoBaselineRef.current = null;
+    gapCreditedRef.current = 0;
     setCoords([]);
     setCoordTimes([]);
     setDistance(0);
