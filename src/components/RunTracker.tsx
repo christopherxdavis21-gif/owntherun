@@ -23,6 +23,7 @@ import {
 } from "@/lib/format";
 import { computeElevationGain, mapMatchTrace } from "@/lib/mapbox.functions";
 import { GpsKalman, deadReckonDistance } from "@/lib/gpsFilter";
+import { startPedometer, stopPedometer, readPedometerDistance } from "@/lib/pedometer";
 import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
 import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
@@ -159,6 +160,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       nativeUnsubRef.current?.();
       nativeErrorUnsubRef.current?.();
       void stopTracking();
+      void stopPedometer();
       void endLiveActivity();
       if (tickRef.current) clearInterval(tickRef.current);
       releaseWakeLock();
@@ -267,6 +269,52 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     setElapsed(Math.floor(accumulatedMsRef.current / 1000));
   };
 
+  // --- Dead reckoning bookkeeping -----------------------------------------
+  // `pedoBaselineRef` is the cumulative pedometer reading at the moment GPS
+  // was last healthy; `gapCreditedRef` is how much of the current gap we have
+  // already added to the total. Diffing against a baseline (rather than
+  // summing deltas) means a missed or failed poll can never lose mileage.
+  const pedoBaselineRef = useRef<number | null>(null);
+  const gapCreditedRef = useRef(0);
+
+  /** Re-anchor the pedometer baseline after a healthy GPS fix. */
+  const rebasePedometer = async () => {
+    const reading = await readPedometerDistance();
+    if (reading != null) pedoBaselineRef.current = reading;
+    gapCreditedRef.current = 0;
+  };
+
+  /**
+   * Credit distance for a stretch where GPS was unusable. Prefers CoreMotion's
+   * step-based distance, which keeps recording on the motion coprocessor even
+   * while the app is suspended, and falls back to speed x time when the
+   * pedometer is unavailable (web, or a build without the native plugin).
+   */
+  const bridgeGapDistance = async (
+    speed: number | null,
+    gapSeconds: number,
+    fixTime: number,
+  ) => {
+    const reading = await readPedometerDistance();
+    const baseline = pedoBaselineRef.current;
+
+    if (reading != null && baseline != null && reading > baseline) {
+      const owed = reading - baseline - gapCreditedRef.current;
+      if (owed > 0) {
+        gapCreditedRef.current += owed;
+        setDistance((cur) => cur + owed);
+        lastFixTimeRef.current = fixTime;
+      }
+      return;
+    }
+
+    const bridged = deadReckonDistance(speed, gapSeconds);
+    if (bridged > 0) {
+      setDistance((cur) => cur + bridged);
+      lastFixTimeRef.current = fixTime;
+    }
+  };
+
   // Shared handler for any incoming GPS fix (web or native background plugin).
   //
   // Three defences run here, in order:
@@ -291,21 +339,24 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     // fixes in batches, so wall-clock time badly misstates the real interval.
     const fixTime = timestamp ?? Date.now();
 
-    // Drift guard: with the screen locked iOS sometimes emits very coarse
-    // cell/wifi fixes (~65m+). Don't draw those — but keep the mileage alive
-    // by extrapolating from the last known speed, the way Strava bridges a
-    // tunnel or dense tree cover.
+    // Drift guard: with the screen locked and the phone in a pocket, fabric and
+    // body mass block the sky view and iOS falls back to coarse cell/wifi fixes
+    // (~65m+). Drawing those is what throws the line across streets. Drop them —
+    // but keep the mileage alive by dead reckoning, preferring the motion
+    // coprocessor's step-based distance and falling back to speed x time.
     if (accuracy != null && accuracy > 50) {
       const gapSeconds = lastFixTimeRef.current != null
         ? (fixTime - lastFixTimeRef.current) / 1000
         : 0;
-      const bridged = deadReckonDistance(speed, gapSeconds);
-      if (bridged > 0) {
-        setDistance((cur) => cur + bridged);
-        lastFixTimeRef.current = fixTime;
-      }
+      void bridgeGapDistance(speed, gapSeconds, fixTime);
       return;
     }
+
+    // A good fix ends any gap: rebase the pedometer so the distance CoreMotion
+    // recorded while GPS was healthy is never double-counted.
+    void rebasePedometer();
+
+
 
     if (
       typeof altitude === "number" &&
@@ -369,6 +420,13 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
   const nativeUnsubRef = useRef<(() => void) | null>(null);
 
   const beginWatch = async (): Promise<boolean> => {
+    // Start CoreMotion alongside GPS. It costs almost nothing (the motion
+    // coprocessor is always running) and gives us step-based distance to
+    // bridge GPS dropouts in a pocket. No-op where unavailable.
+    pedoBaselineRef.current = null;
+    gapCreditedRef.current = 0;
+    void startPedometer();
+
     // Native (iOS/Android in Capacitor): use background-geolocation. This is
     // the ONLY place we trigger the "Always Allow" prompt — never at app launch.
     if (isNativePlatform()) {
@@ -450,9 +508,12 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       nativeErrorUnsubRef.current = null;
     }
     void stopTracking();
+    void stopPedometer();
     lastFixRef.current = null;
     lastAltRef.current = null;
     kalmanRef.current = new GpsKalman();
+    pedoBaselineRef.current = null;
+    gapCreditedRef.current = 0;
   };
 
   const handleStart = async () => {
@@ -523,6 +584,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     lastFixRef.current = null;
     lastAltRef.current = null;
     kalmanRef.current = new GpsKalman();
+    pedoBaselineRef.current = null;
+    gapCreditedRef.current = 0;
     setCoords([]);
     setCoordTimes([]);
     setDistance(0);
