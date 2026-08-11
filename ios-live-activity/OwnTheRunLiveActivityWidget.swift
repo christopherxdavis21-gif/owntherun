@@ -7,32 +7,69 @@ import SwiftUI
  * Add this file to the `OwnTheRunActivity` widget extension target only.
  */
 
+@available(iOS 17.0, *)
+private struct OTRControlButtons: View {
+    let paused: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if paused {
+                Button(intent: OTRResumeIntent()) {
+                    Label("Resume", systemImage: "play.fill")
+                        .font(.caption.bold())
+                        .frame(maxWidth: .infinity)
+                }
+            } else {
+                Button(intent: OTRPauseIntent()) {
+                    Label("Pause", systemImage: "pause.fill")
+                        .font(.caption.bold())
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            Button(intent: OTRFinishIntent()) {
+                Label("Finish", systemImage: "stop.fill")
+                    .font(.caption.bold())
+                    .frame(maxWidth: .infinity)
+            }
+            .tint(.red)
+        }
+        .buttonStyle(.bordered)
+challenge_placeholder
+    }
+}
+
 private struct OTRLockScreenView: View {
     let state: OwnTheRunAttributes.ContentState
 
     var body: some View {
-        HStack(spacing: 16) {
-            Image("AppLogo")
-                .resizable()
-                .frame(width: 36, height: 36)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
+        VStack(spacing: 12) {
+            HStack(spacing: 16) {
+                Image("AppLogo")
+                    .resizable()
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.status == "paused" ? "Paused" : "Own The Run")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(OTRFormat.miles(state.distanceMeters))
-                    .font(.title2.bold())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(state.status == "paused" ? "Paused" : "Own The Run")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(OTRFormat.miles(state.distanceMeters))
+                        .font(.title2.bold())
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(OTRFormat.duration(state.elapsedSeconds))
+                        .font(.headline)
+                    Text(OTRFormat.pace(state.paceSecondsPerMile))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(OTRFormat.duration(state.elapsedSeconds))
-                    .font(.headline)
-                Text(OTRFormat.pace(state.paceSecondsPerMile))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if #available(iOS 17.0, *) {
+                OTRControlButtons(paused: state.status == "paused")
             }
         }
         .padding()
@@ -80,8 +117,13 @@ struct OwnTheRunLiveActivity: Widget {
                     )
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(OTRFormat.duration(state.elapsedSeconds))
-                        .font(.title.bold())
+                    VStack(spacing: 10) {
+                        Text(OTRFormat.duration(state.elapsedSeconds))
+                            .font(.title.bold())
+                        if #available(iOS 17.0, *) {
+                            OTRControlButtons(paused: state.status == "paused")
+                        }
+                    }
                 }
             } compactLeading: {
                 Image("AppLogo")
