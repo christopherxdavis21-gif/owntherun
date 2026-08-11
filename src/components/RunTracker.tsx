@@ -22,6 +22,7 @@ import {
   haversineMeters,
 } from "@/lib/format";
 import { computeElevationGain, mapMatchTrace } from "@/lib/mapbox.functions";
+import { GpsKalman, deadReckonDistance } from "@/lib/gpsFilter";
 import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
 import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
@@ -76,6 +77,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
   const watchIdRef = useRef<number | null>(null);
   const lastFixRef = useRef<Coord | null>(null);
   const lastFixTimeRef = useRef<number | null>(null);
+  const kalmanRef = useRef<GpsKalman>(new GpsKalman());
 
   const lastAltRef = useRef<number | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -266,26 +268,44 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
   };
 
   // Shared handler for any incoming GPS fix (web or native background plugin).
-  // IMPORTANT: we no longer drop low-accuracy fixes entirely — that was the
-  // root cause of "ran a 5k, only tracked 0.01 mi". Under tree cover or in
-  // urban canyons every single fix can come back with accuracy > 30m, which
-  // meant we threw away the whole run. Now we always record the position
-  // (so the map keeps drawing), and only skip the *distance* increment when
-  // the movement is smaller than the GPS noise floor.
+  //
+  // Three defences run here, in order:
+  //  1. Coarse cell/wifi fixes (accuracy > 50m) are never drawn — they are what
+  //     throw the line across streets when the phone is locked in a pocket.
+  //     We do NOT throw the run away though: if the fix carries a usable speed
+  //     we dead-reckon the distance so mileage keeps accruing through the gap.
+  //  2. Accepted fixes go through a Kalman filter so the drawn line follows the
+  //     road instead of jittering around it.
+  //  3. Jitter + teleport guards decide whether the movement counts as distance.
   const handleFix = (
     coord: Coord,
     altitude: number | null,
     altitudeAccuracy: number | null,
     accuracy: number | null,
+    speed: number | null = null,
+    timestamp: number | null = null,
   ) => {
     if (accuracy != null) setLastAccuracy(accuracy);
 
+    // Use the OS fix time, not Date.now(). With the screen locked iOS delivers
+    // fixes in batches, so wall-clock time badly misstates the real interval.
+    const fixTime = timestamp ?? Date.now();
+
     // Drift guard: with the screen locked iOS sometimes emits very coarse
-    // cell/wifi fixes. Recording those is what makes the trace zig-zag off
-    // the road. Drop the truly wild ones — GPS-quality fixes are < ~50m.
-    // Cell/wifi fixes come back ~65m+ and are what throw the line off the
-    // road; real GPS fixes are well under 50m.
-    if (accuracy != null && accuracy > 50) return;
+    // cell/wifi fixes (~65m+). Don't draw those — but keep the mileage alive
+    // by extrapolating from the last known speed, the way Strava bridges a
+    // tunnel or dense tree cover.
+    if (accuracy != null && accuracy > 50) {
+      const gapSeconds = lastFixTimeRef.current != null
+        ? (fixTime - lastFixTimeRef.current) / 1000
+        : 0;
+      const bridged = deadReckonDistance(speed, gapSeconds);
+      if (bridged > 0) {
+        setDistance((cur) => cur + bridged);
+        lastFixTimeRef.current = fixTime;
+      }
+      return;
+    }
 
     if (
       typeof altitude === "number" &&
@@ -299,16 +319,25 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       }
       lastAltRef.current = altitude;
     }
-    const fixTime = Date.now();
+
+    // Kalman-smooth the accepted fix. Measurement noise is the reported
+    // accuracy, so precise fixes move the line and vague ones barely nudge it.
+    const smoothed = kalmanRef.current.process(
+      coord[0],
+      coord[1],
+      accuracy,
+      fixTime,
+    );
+
     setCoords((prev) => {
       const last = lastFixRef.current;
       if (last) {
-        const d = haversineMeters(last, coord);
+        const d = haversineMeters(last, smoothed);
         // Ignore tiny stationary jitter without allowing a temporarily broad
         // accuracy radius to suppress genuine forward movement indefinitely.
         const noiseFloor = Math.max(2, Math.min(10, (accuracy ?? 0) * 0.35));
         if (d < noiseFloor) {
-          setCenter(coord);
+          setCenter(smoothed);
           return prev;
         }
         // Teleport guard: reject physically impossible jumps (> 9 m/s sustained,
@@ -319,11 +348,11 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
         }
         setDistance((cur) => cur + d);
       }
-      lastFixRef.current = coord;
+      lastFixRef.current = smoothed;
       lastFixTimeRef.current = fixTime;
-      setCenter(coord);
+      setCenter(smoothed);
 
-      const next = [...prev, coord];
+      const next = [...prev, smoothed];
       setCoordTimes((t) => [...t, fixTime]);
       try {
         window.localStorage.setItem(
@@ -345,7 +374,14 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     if (isNativePlatform()) {
       try {
         nativeUnsubRef.current = onLocationFix((fix: LocationFix) => {
-          handleFix(fix.coord, fix.altitude, fix.altitudeAccuracy, fix.accuracy);
+          handleFix(
+            fix.coord,
+            fix.altitude,
+            fix.altitudeAccuracy,
+            fix.accuracy,
+            fix.speed,
+            fix.timestamp,
+          );
         });
         const unsubscribeError = onTrackingError((message) => {
           setPermError(message);
@@ -381,6 +417,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
           pos.coords.altitude,
           pos.coords.altitudeAccuracy,
           pos.coords.accuracy,
+          pos.coords.speed,
+          pos.timestamp,
         );
       },
       (err) => {
@@ -414,6 +452,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     void stopTracking();
     lastFixRef.current = null;
     lastAltRef.current = null;
+    kalmanRef.current = new GpsKalman();
   };
 
   const handleStart = async () => {
@@ -483,6 +522,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     startedAtRef.current = null;
     lastFixRef.current = null;
     lastAltRef.current = null;
+    kalmanRef.current = new GpsKalman();
     setCoords([]);
     setCoordTimes([]);
     setDistance(0);
