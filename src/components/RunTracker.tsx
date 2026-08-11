@@ -21,7 +21,7 @@ import {
   formatElevation,
   haversineMeters,
 } from "@/lib/format";
-import { computeElevationGain } from "@/lib/mapbox.functions";
+import { computeElevationGain, mapMatchTrace } from "@/lib/mapbox.functions";
 import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
 import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
