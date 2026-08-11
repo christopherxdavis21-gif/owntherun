@@ -291,21 +291,24 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     // fixes in batches, so wall-clock time badly misstates the real interval.
     const fixTime = timestamp ?? Date.now();
 
-    // Drift guard: with the screen locked iOS sometimes emits very coarse
-    // cell/wifi fixes (~65m+). Don't draw those — but keep the mileage alive
-    // by extrapolating from the last known speed, the way Strava bridges a
-    // tunnel or dense tree cover.
+    // Drift guard: with the screen locked and the phone in a pocket, fabric and
+    // body mass block the sky view and iOS falls back to coarse cell/wifi fixes
+    // (~65m+). Drawing those is what throws the line across streets. Drop them —
+    // but keep the mileage alive by dead reckoning, preferring the motion
+    // coprocessor's step-based distance and falling back to speed x time.
     if (accuracy != null && accuracy > 50) {
       const gapSeconds = lastFixTimeRef.current != null
         ? (fixTime - lastFixTimeRef.current) / 1000
         : 0;
-      const bridged = deadReckonDistance(speed, gapSeconds);
-      if (bridged > 0) {
-        setDistance((cur) => cur + bridged);
-        lastFixTimeRef.current = fixTime;
-      }
+      void bridgeGapDistance(speed, gapSeconds, fixTime);
       return;
     }
+
+    // A good fix ends any gap: rebase the pedometer so the distance CoreMotion
+    // recorded while GPS was healthy is never double-counted.
+    void rebasePedometer();
+
+
 
     if (
       typeof altitude === "number" &&
