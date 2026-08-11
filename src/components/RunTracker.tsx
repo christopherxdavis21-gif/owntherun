@@ -36,7 +36,7 @@ import {
   clearLockScreenStats,
   type LocationFix,
 } from "@/lib/tracking";
-import { updateLiveActivity, endLiveActivity } from "@/lib/liveActivity";
+import { startLiveActivity, updateLiveActivity, endLiveActivity } from "@/lib/liveActivity";
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
