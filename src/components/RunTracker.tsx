@@ -21,7 +21,7 @@ import {
   formatElevation,
   haversineMeters,
 } from "@/lib/format";
-import { computeElevationGain } from "@/lib/mapbox.functions";
+import { computeElevationGain, mapMatchTrace } from "@/lib/mapbox.functions";
 import { getRouteDirections, type DirectionStep } from "@/lib/directions.functions";
 import { useRunGuidance } from "@/hooks/useRunGuidance";
 import { isVoiceMuted, isVoiceSupported, primeVoice, setVoiceMuted, speak, cancelSpeech } from "@/lib/voice";
@@ -36,7 +36,7 @@ import {
   clearLockScreenStats,
   type LocationFix,
 } from "@/lib/tracking";
-import { updateLiveActivity, endLiveActivity } from "@/lib/liveActivity";
+import { startLiveActivity, updateLiveActivity, endLiveActivity } from "@/lib/liveActivity";
 import { toast } from "sonner";
 import { Play, Pause, Square, MapPin, Loader2, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { RunPermissionPrimer, hasSeenRunPrimer, markRunPrimerSeen } from "@/components/RunPermissionPrimer";
@@ -283,7 +283,9 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     // Drift guard: with the screen locked iOS sometimes emits very coarse
     // cell/wifi fixes. Recording those is what makes the trace zig-zag off
     // the road. Drop the truly wild ones — GPS-quality fixes are < ~50m.
-    if (accuracy != null && accuracy > 75) return;
+    // Cell/wifi fixes come back ~65m+ and are what throw the line off the
+    // road; real GPS fixes are well under 50m.
+    if (accuracy != null && accuracy > 50) return;
 
     if (
       typeof altitude === "number" &&
@@ -435,6 +437,14 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       speak("Run started");
     }
     setStatus("running");
+    // Kick the Dynamic Island / lock-screen Live Activity off immediately so
+    // it's already up before the phone gets pocketed.
+    void startLiveActivity({
+      distanceMeters: 0,
+      elapsedSeconds: 0,
+      paceSecondsPerMile: 0,
+      status: "running",
+    });
   };
   const handlePause = () => {
     endWatch();
@@ -496,10 +506,29 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       if (!userData.user) throw new Error("Not signed in");
       const userId = userData.user.id;
 
+      // Snap the recorded trace to the road/path network so the saved map
+      // clings to streets instead of the pocket-GPS zig-zag.
+      let finalCoords: Coord[] = coords;
+      let finalDistance = distance;
+      try {
+        const snapped = await mapMatchTrace({ data: { coordinates: coords } });
+        if (snapped.matched && snapped.coordinates.length > 1) {
+          finalCoords = snapped.coordinates as Coord[];
+          // Only trust the matched distance when it's in the same ballpark as
+          // the GPS-measured distance (guards against a bad match shortcut).
+          const d = snapped.distance_meters;
+          if (d > 0 && distance > 0 && d / distance > 0.7 && d / distance < 1.3) {
+            finalDistance = d;
+          }
+        }
+      } catch {
+        // Non-fatal — keep the raw trace
+      }
+
       // Refine elevation gain via Mapbox terrain (more accurate than phone GPS altitude)
       let finalElev = elevationGain;
       try {
-        const elev = await computeElevationGain({ data: { coordinates: coords } });
+        const elev = await computeElevationGain({ data: { coordinates: finalCoords } });
         if (elev.elevation_gain_meters > 0) finalElev = elev.elevation_gain_meters;
       } catch {
         // Non-fatal, fall back to live GPS-derived gain
@@ -514,8 +543,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
             user_id: userId,
             name: routeName.trim(),
             description: null,
-            coordinates: coords,
-            distance_meters: distance,
+            coordinates: finalCoords,
+            distance_meters: finalDistance,
             is_public: routePublic,
           })
           .select("id")
@@ -527,14 +556,15 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
       const { error: runErr } = await supabase.from("runs").insert({
         user_id: userId,
         route_id: routeId,
-        distance_meters: distance,
+        distance_meters: finalDistance,
         duration_seconds: elapsed,
         elevation_gain_meters: finalElev,
         visibility,
         notes: notes.trim() || null,
-        coordinates: coords,
+        coordinates: finalCoords,
       });
       if (runErr) throw runErr;
+
 
       try { window.localStorage.removeItem("otr:active-run-coords"); } catch { /* ignore */ }
 
