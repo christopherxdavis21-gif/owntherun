@@ -374,7 +374,14 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     if (isNativePlatform()) {
       try {
         nativeUnsubRef.current = onLocationFix((fix: LocationFix) => {
-          handleFix(fix.coord, fix.altitude, fix.altitudeAccuracy, fix.accuracy);
+          handleFix(
+            fix.coord,
+            fix.altitude,
+            fix.altitudeAccuracy,
+            fix.accuracy,
+            fix.speed,
+            fix.timestamp,
+          );
         });
         const unsubscribeError = onTrackingError((message) => {
           setPermError(message);
@@ -410,6 +417,8 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
           pos.coords.altitude,
           pos.coords.altitudeAccuracy,
           pos.coords.accuracy,
+          pos.coords.speed,
+          pos.timestamp,
         );
       },
       (err) => {
@@ -443,6 +452,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     void stopTracking();
     lastFixRef.current = null;
     lastAltRef.current = null;
+    kalmanRef.current = new GpsKalman();
   };
 
   const handleStart = async () => {
@@ -512,6 +522,7 @@ export function RunTracker({ plannedPath, followingRouteId }: RunTrackerProps = 
     startedAtRef.current = null;
     lastFixRef.current = null;
     lastAltRef.current = null;
+    kalmanRef.current = new GpsKalman();
     setCoords([]);
     setCoordTimes([]);
     setDistance(0);
